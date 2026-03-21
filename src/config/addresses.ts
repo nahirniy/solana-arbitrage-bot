@@ -1,0 +1,4 @@
+export const POOL_ADDRESSES = {
+	PUMPFUN_LIA_SOL: "8BhCzFjnHmFyZEdh6JNgoQNRHCS2R8KHKYpGviocNYSa",
+	METEORA_LIA_SOL: "8ida4DAhywHBsH8qAaXhWYT316kaBaFLhVr3ZQc48pUf"
+} as const;
