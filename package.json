@@ -1,0 +1,41 @@
+{
+	"name": "solana-arbitrage-bot",
+	"version": "1.0.0",
+	"main": "dist/index.js",
+	"scripts": {
+		"build": "tsc",
+		"start": "npx tsc && node dist/index.js",
+		"test": "mocha -r ts-node/register test/**/*.test.ts"
+	},
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/nahirniy/solana-arbitrage-bot.git"
+	},
+	"keywords": [],
+	"author": "",
+	"license": "ISC",
+	"bugs": {
+		"url": "https://github.com/nahirniy/solana-arbitrage-bot/issues"
+	},
+	"homepage": "https://github.com/nahirniy/solana-arbitrage-bot#readme",
+	"description": "Solana arbitrage bot: PumpSwap vs Meteora DLMM",
+	"dependencies": {
+		"@grpc/grpc-js": "^1.14.3",
+		"@solana/spl-token": "^0.4.14",
+		"@solana/web3.js": "^1.98.4",
+		"@triton-one/yellowstone-grpc": "^4.0.2",
+		"bs58": "^6.0.0",
+		"chalk": "^4.1.0",
+		"dotenv": "^17.3.1"
+	},
+	"devDependencies": {
+		"@types/chai": "^5.2.3",
+		"@types/mocha": "^10.0.10",
+		"@types/node": "^25.5.0",
+		"chai": "^6.2.2",
+		"mocha": "^11.7.5",
+		"prettier": "^3.8.1",
+		"ts-node": "^10.9.2",
+		"typescript": "^5.9.3"
+	}
+}
