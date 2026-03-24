@@ -1,7 +1,6 @@
 import { PublicKey } from "@solana/web3.js";
 import type { AccountMeta } from "@solana/web3.js";
 import type { DlmmPoolState, DexAccountsContext } from "../../types";
-import { BINS_PER_ARRAY } from "..";
 import { METEORA_PROGRAM, MEMO_PROGRAM } from "../program.config";
 import { deriveBinArrayPDA } from "../../utils";
 
@@ -10,7 +9,7 @@ export function getMeteoraAccounts({ poolState }: DexAccountsContext): AccountMe
 
 	const accounts: AccountMeta[] = [
 		{ pubkey: new PublicKey(state.poolAddress), isSigner: false, isWritable: true },
-		{ pubkey: deriveBitmapExtension(state.poolAddress), isSigner: false, isWritable: false },
+		{ pubkey: METEORA_PROGRAM, isSigner: false, isWritable: false },
 		{ pubkey: new PublicKey(state.reserveX), isSigner: false, isWritable: true },
 		{ pubkey: new PublicKey(state.reserveY), isSigner: false, isWritable: true },
 		{ pubkey: deriveOracle(state.poolAddress), isSigner: false, isWritable: true },
@@ -20,9 +19,9 @@ export function getMeteoraAccounts({ poolState }: DexAccountsContext): AccountMe
 		{ pubkey: METEORA_PROGRAM, isSigner: false, isWritable: false }
 	];
 
-	const centerIdx = Math.floor(state.activeId / BINS_PER_ARRAY);
-	for (let i = centerIdx - 1; i <= centerIdx + 1; i++) {
-		accounts.push({ pubkey: deriveBinArrayPDA(state.poolAddress, i), isSigner: false, isWritable: true });
+	const binArrayIndices = Array.from(state.binArrays.keys()).sort((a, b) => a - b);
+	for (const index of binArrayIndices) {
+		accounts.push({ pubkey: deriveBinArrayPDA(state.poolAddress, index), isSigner: false, isWritable: true });
 	}
 
 	return accounts;
@@ -43,18 +42,6 @@ function deriveOracle(lbPairAddress: string): PublicKey {
 	return pda;
 }
 
-const bitmapCache = new Map<string, PublicKey>();
-function deriveBitmapExtension(lbPairAddress: string): PublicKey {
-	let cached = bitmapCache.get(lbPairAddress);
-	if (cached) return cached;
-
-	const [pda] = PublicKey.findProgramAddressSync(
-		[Buffer.from("bitmap"), new PublicKey(lbPairAddress).toBuffer()],
-		METEORA_PROGRAM
-	);
-	bitmapCache.set(lbPairAddress, pda);
-	return pda;
-}
 
 let eventAuthority: PublicKey | null = null;
 function deriveEventAuthority(): PublicKey {

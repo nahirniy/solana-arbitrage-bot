@@ -1,6 +1,6 @@
 import { Connection, Keypair, PublicKey, NonceAccount } from "@solana/web3.js";
-import type { AddressLookupTableAccount } from "@solana/web3.js";
-import type { ArbOpportunity, AnyPoolState, WalletAccounts } from "../types";
+import type { AddressLookupTableAccount, SimulatedTransactionResponse } from "@solana/web3.js";
+import type { ArbOpportunity, ArbRoute, AnyPoolState, WalletAccounts } from "../types";
 import { PoolStateService } from "../state";
 import { buildExecuteArbAccounts } from "./account-builder";
 import { buildArbTransaction } from "./transaction-builder";
@@ -67,6 +67,45 @@ export class ArbExecutorService {
 			await this.refreshNonce();
 			this.isPending = false;
 		}
+	}
+
+	get wallet(): WalletAccounts {
+		return this.walletAccounts;
+	}
+
+	async simulate(
+		route: ArbRoute,
+		amountIn: bigint,
+		accountAddresses?: string[]
+	): Promise<SimulatedTransactionResponse> {
+		const poolStates = new Map<string, AnyPoolState>();
+		for (const address of [route.buyPoolAddress, route.sellPoolAddress]) {
+			const state = this.poolState.getPoolState(address);
+			if (!state) throw new Error(`Missing pool state for ${address}`);
+			poolStates.set(address, state);
+		}
+
+		const accounts = buildExecuteArbAccounts(route, poolStates, this.walletAccounts);
+		const tx = buildArbTransaction(
+			accounts,
+			route,
+			amountIn,
+			this.nonceAddress,
+			this.nonceValue,
+			this.walletAccounts.wallet,
+			this.lut
+		);
+
+		tx.sign([this.keypair]);
+
+		const result = await this.connection.simulateTransaction(tx, {
+			sigVerify: false,
+			replaceRecentBlockhash: true,
+			accounts: accountAddresses
+				? { encoding: "base64" as const, addresses: accountAddresses }
+				: undefined
+		});
+		return result.value;
 	}
 
 	private async refreshNonce(): Promise<void> {
