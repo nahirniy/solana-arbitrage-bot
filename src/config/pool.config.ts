@@ -1,20 +1,18 @@
 import { DexType, TokenSymbol } from "../types";
 import type { PoolDetails, ArbPoolsConfig, DexPoolConfig } from "../types";
-import { POOL_ADDRESSES } from "./addresses";
 
-// All pool details in one place - addresses come from addresses.ts
 const POOL_DETAILS: readonly PoolDetails[] = [
 	{
 		dexType: DexType.PUMPFUN_AMM,
 		baseToken: TokenSymbol.LIA,
 		quoteToken: TokenSymbol.WSOL,
-		poolAddress: POOL_ADDRESSES.PUMPFUN_LIA_SOL
+		poolAddress: "8BhCzFjnHmFyZEdh6JNgoQNRHCS2R8KHKYpGviocNYSa"
 	},
 	{
 		dexType: DexType.METEORA_DLMM,
 		baseToken: TokenSymbol.LIA,
 		quoteToken: TokenSymbol.WSOL,
-		poolAddress: POOL_ADDRESSES.METEORA_LIA_SOL
+		poolAddress: "HPx4ySmLFFWWwwA8q7bgXZncoAmDgEmyJKdbSvucx7AJ"
 	}
 ];
 

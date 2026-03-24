@@ -3,6 +3,7 @@ import { loadEnv, buildArbPoolsConfigs } from "./config";
 import { PoolStateService, initializeState } from "./state";
 import { GeyserListenerService } from "./geyser";
 import { ArbDetectorService } from "./arb";
+import { initializeExecution } from "./execution";
 import { log, formatError } from "./utils";
 
 async function main(): Promise<void> {
@@ -14,7 +15,9 @@ async function main(): Promise<void> {
 	const poolState = new PoolStateService();
 	await initializeState(env.connection, arbPoolsConfigs, poolState);
 
-	const arbDetector = new ArbDetectorService(poolState);
+	const executor = await initializeExecution(env, poolState, arbPoolsConfigs);
+
+	const arbDetector = new ArbDetectorService(poolState, executor);
 	for (const config of arbPoolsConfigs) {
 		arbDetector.addConfig(config);
 	}

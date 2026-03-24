@@ -4,6 +4,9 @@ export interface EnvConfig {
 	readonly rpcUrl: string;
 	readonly geyserUrl: string;
 	readonly connection: Connection;
+	readonly privateKey: string;
+	readonly nonceAddress: string | null;
+	readonly lutAddress: string | null;
 }
 
 let envConfig: EnvConfig | null = null;
@@ -24,7 +27,11 @@ export function loadEnv(): EnvConfig {
 		disableRetryOnRateLimit: false
 	});
 
-	envConfig = { rpcUrl, geyserUrl, connection };
+	const privateKey = requireEnv("PRIVATE_KEY");
+	const nonceAddress = process.env["NONCE_ADDRESS"] || null;
+	const lutAddress = process.env["LUT_ADDRESS"] || null;
+
+	envConfig = { rpcUrl, geyserUrl, connection, privateKey, nonceAddress, lutAddress };
 	return envConfig;
 }
 

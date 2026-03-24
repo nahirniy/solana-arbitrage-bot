@@ -1,5 +1,6 @@
 import type { ArbPoolsConfig, ArbOpportunity } from "../types";
 import type { PoolWithState } from "../math/arbitrage-math";
+import type { ArbExecutorService } from "../execution";
 import { PoolStateService } from "../state";
 import { findBestRoute, simulateArbitrage } from "../math";
 import { log } from "../utils";
@@ -7,7 +8,10 @@ import { log } from "../utils";
 export class ArbDetectorService {
 	private readonly arbConfigs: ArbPoolsConfig[] = [];
 
-	constructor(private readonly poolState: PoolStateService) {}
+	constructor(
+		private readonly poolState: PoolStateService,
+		private readonly executor: ArbExecutorService | null = null
+	) {}
 
 	scan(slot: number): void {
 		for (const config of this.arbConfigs) {
@@ -23,6 +27,10 @@ export class ArbDetectorService {
 
 			const opportunity = simulateArbitrage(found.route, found.buyState, found.sellState, slot);
 			this.logResult(opportunity);
+
+			if (opportunity.profitLamports > 0n && this.executor) {
+				void this.executor.execute(opportunity);
+			}
 		}
 	}
 
