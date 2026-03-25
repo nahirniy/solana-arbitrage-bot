@@ -21,11 +21,16 @@ import { DlmmPoolState, DlmmFeeParams, DlmmBinArray, DlmmBin, TokenSymbol } from
 const POOL_MIN_SIZE = 216;
 
 const SP_BASE_FACTOR = 8;
+const SP_FILTER_PERIOD = 10;
+const SP_DECAY_PERIOD = 12;
+const SP_REDUCTION_FACTOR = 14;
 const SP_VARIABLE_FEE_CONTROL = 16;
 const SP_MAX_VOL_ACCUMULATOR = 20;
 
 const VP_VOL_ACCUMULATOR = 40;
 const VP_VOL_REFERENCE = 44;
+const VP_INDEX_REFERENCE = 48;
+const VP_LAST_UPDATE_TIMESTAMP = 56;
 
 const ACTIVE_ID_OFFSET = 76;
 const BIN_STEP_OFFSET = 80;
@@ -43,10 +48,15 @@ export function decodeMeteoraPool(poolAddress: string, data: Buffer): DlmmPoolSt
 
 	const feeParams: DlmmFeeParams = {
 		baseFactor: data.readUInt16LE(SP_BASE_FACTOR),
+		filterPeriod: data.readUInt16LE(SP_FILTER_PERIOD),
+		decayPeriod: data.readUInt16LE(SP_DECAY_PERIOD),
+		reductionFactor: data.readUInt16LE(SP_REDUCTION_FACTOR),
 		variableFeeControl: data.readUInt32LE(SP_VARIABLE_FEE_CONTROL),
 		maxVolatilityAccumulator: data.readUInt32LE(SP_MAX_VOL_ACCUMULATOR),
 		volatilityAccumulator: data.readUInt32LE(VP_VOL_ACCUMULATOR),
-		volatilityReference: data.readUInt32LE(VP_VOL_REFERENCE)
+		volatilityReference: data.readUInt32LE(VP_VOL_REFERENCE),
+		indexReference: data.readInt32LE(VP_INDEX_REFERENCE),
+		lastUpdateTimestamp: Number(data.readBigInt64LE(VP_LAST_UPDATE_TIMESTAMP))
 	};
 
 	return {
@@ -75,19 +85,13 @@ export function decodeMeteoraPool(poolAddress: string, data: Buffer): DlmmPoolSt
 // 56      ...    bins[70], each 144 bytes
 //
 // Per bin (144 bytes):
-// +0      16     amount_x (u128)
-// +16     16     amount_y (u128)
-// +32     112    remaining fields (not needed for swap math)
+// +0       8     amount_x (u64)
+// +8       8     amount_y (u64)
+// +16    128     remaining fields (price, liquidity_supply, etc.)
 
 const BIN_ARRAY_HEADER_SIZE = 56;
 const BIN_SIZE = 144;
 const BIN_ARRAY_MIN_SIZE = BIN_ARRAY_HEADER_SIZE + BINS_PER_ARRAY * BIN_SIZE;
-
-function readU128LE(buf: Buffer, offset: number): bigint {
-	const low = buf.readBigUInt64LE(offset);
-	const high = buf.readBigUInt64LE(offset + 8);
-	return low + (high << 64n);
-}
 
 export function decodeMeteoraBinArray(data: Buffer): DlmmBinArray | null {
 	if (data.length < BIN_ARRAY_MIN_SIZE) return null;
@@ -98,8 +102,8 @@ export function decodeMeteoraBinArray(data: Buffer): DlmmBinArray | null {
 	const bins: DlmmBin[] = [];
 	for (let i = 0; i < BINS_PER_ARRAY; i++) {
 		const binOffset = BIN_ARRAY_HEADER_SIZE + i * BIN_SIZE;
-		const amountX = readU128LE(data, binOffset);
-		const amountY = readU128LE(data, binOffset + 16);
+		const amountX = data.readBigUInt64LE(binOffset);
+		const amountY = data.readBigUInt64LE(binOffset + 8);
 
 		if (amountX > 0n || amountY > 0n) {
 			bins.push({ id: index * BINS_PER_ARRAY + i, amountX, amountY });
