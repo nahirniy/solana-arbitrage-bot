@@ -1,19 +1,21 @@
 import type { AmmPoolState, PumpFeeTier, PoolStateHandler } from "../types";
 import { TOKEN_DECIMALS } from "../config";
-import { decodeTokenAccountBalance, selectFeeTier } from "../decoders";
+import { decodeTokenAccountBalance, decodePumpFeeConfig, selectFeeTier } from "../decoders";
 import { ammGetPrice } from "../math";
 import { log, formatPrice } from "../utils";
 
 export class AmmStateService implements PoolStateHandler {
 	private state: AmmPoolState | null = null;
 	private feeTiers: readonly PumpFeeTier[] = [];
+	private feeConfigPubkey: string | null = null;
 	private reserves = new Map<string, bigint>();
 	private pendingReserves = new Map<string, bigint>();
 	private updateTracker = new Set<string>();
 
-	init(state: AmmPoolState, feeTiers: readonly PumpFeeTier[]): void {
+	init(state: AmmPoolState, feeTiers: readonly PumpFeeTier[], feeConfigPubkey: string): void {
 		this.state = state;
 		this.feeTiers = feeTiers;
+		this.feeConfigPubkey = feeConfigPubkey;
 		this.state.price = this.calcPrice();
 		this.reserves.set(state.baseVault, state.baseReserve);
 		this.reserves.set(state.quoteVault, state.quoteReserve);
@@ -21,14 +23,33 @@ export class AmmStateService implements PoolStateHandler {
 
 	isSubscribed(pubkey: string): boolean {
 		if (!this.state) return false;
-		return pubkey === this.state.baseVault || pubkey === this.state.quoteVault;
+		return pubkey === this.state.baseVault || pubkey === this.state.quoteVault || pubkey === this.feeConfigPubkey;
+	}
+
+	handleUpdate(pubkey: string, data: Buffer): boolean {
+		if (!this.state) return false;
+
+		if (pubkey === this.feeConfigPubkey) {
+			return this.applyFeeConfigUpdate(data);
+		}
+
+		return this.applyVaultUpdate(pubkey, data);
+	}
+
+	getState(): AmmPoolState | null {
+		return this.state;
+	}
+
+	getSubscriptionAddresses(): string[] {
+		if (!this.state) return [];
+		const addresses = [this.state.baseVault, this.state.quoteVault];
+		if (this.feeConfigPubkey) addresses.push(this.feeConfigPubkey);
+		return addresses;
 	}
 
 	// Geyser sends vault token account updates separately.
 	// We buffer until both vaults are fresh before committing — avoids arb checks on stale half-state.
-	handleUpdate(pubkey: string, data: Buffer): boolean {
-		if (!this.state) return false;
-
+	private applyVaultUpdate(pubkey: string, data: Buffer): boolean {
 		const balance = decodeTokenAccountBalance(data);
 		if (balance === null) return false;
 
@@ -44,26 +65,29 @@ export class AmmStateService implements PoolStateHandler {
 			this.reserves.set(vault, bal);
 		}
 
-		this.state.baseReserve = this.reserves.get(this.state.baseVault) ?? 0n;
-		this.state.quoteReserve = this.reserves.get(this.state.quoteVault) ?? 0n;
-		this.state.price = this.calcPrice();
+		this.state!.baseReserve = this.reserves.get(this.state!.baseVault) ?? 0n;
+		this.state!.quoteReserve = this.reserves.get(this.state!.quoteVault) ?? 0n;
+		this.state!.price = this.calcPrice();
 		if (this.feeTiers.length > 0) {
-			this.state.feeBps = selectFeeTier(this.feeTiers, this.state.quoteReserve);
+			this.state!.feeBps = selectFeeTier(this.feeTiers, this.state!.quoteReserve);
 		}
-		log.info(`[amm] price=${formatPrice(this.state.price, this.state.baseSymbol, this.state.quoteSymbol)}`);
+		log.info(`[amm] price=${formatPrice(this.state!.price, this.state!.baseSymbol, this.state!.quoteSymbol)}`);
 
 		this.pendingReserves.clear();
 		this.updateTracker.clear();
 		return true;
 	}
 
-	getState(): AmmPoolState | null {
-		return this.state;
-	}
+	private applyFeeConfigUpdate(data: Buffer): boolean {
+		const tiers = decodePumpFeeConfig(data);
+		if (tiers.length === 0) return false;
 
-	getSubscriptionAddresses(): string[] {
-		if (!this.state) return [];
-		return [this.state.baseVault, this.state.quoteVault];
+		this.feeTiers = tiers;
+		if (this.state) {
+			this.state.feeBps = selectFeeTier(tiers, this.state.quoteReserve);
+			log.info(`[amm] Fee tiers updated (${tiers.length} tiers)`);
+		}
+		return false; // fee change alone doesn't trigger arb scan
 	}
 
 	private calcPrice(): bigint {

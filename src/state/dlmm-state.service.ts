@@ -9,6 +9,7 @@ export class DlmmStateService implements PoolStateHandler {
 	private state: DlmmPoolState | null = null;
 	private subscribedArrays = new Map<string, number>(); // pubkey -> array index
 	private centerArrayIndex = 0;
+
 	init(state: DlmmPoolState, binArrays: { pubkey: string; data: DlmmBinArray }[]): void {
 		this.state = state;
 
@@ -100,7 +101,9 @@ export class DlmmStateService implements PoolStateHandler {
 		this.state.feeParams.volatilityAccumulator = feeParams.volatilityAccumulator;
 		this.state.feeParams.volatilityReference = feeParams.volatilityReference;
 		this.state.price = this.calcPrice();
-		log.info(`[dlmm] price=${formatPrice(this.state.price, this.state.baseSymbol, this.state.quoteSymbol)} (activeId=${activeId})`);
+		log.info(
+			`[dlmm] price=${formatPrice(this.state.price, this.state.baseSymbol, this.state.quoteSymbol)} (activeId=${activeId})`
+		);
 
 		return true;
 	}

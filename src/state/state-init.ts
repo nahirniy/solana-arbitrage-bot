@@ -76,7 +76,7 @@ async function initAmm(
 	}
 
 	const service = new AmmStateService();
-	service.init(decoded, feeTiers);
+	service.init(decoded, feeTiers, PUMP_FEE_CONFIG.toBase58());
 	poolState.register(pool.poolAddress, service);
 
 	log.success(
