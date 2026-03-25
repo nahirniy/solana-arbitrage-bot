@@ -1,6 +1,6 @@
 import { Connection, PublicKey } from "@solana/web3.js";
 import { BINS_PER_ARRAY } from "../config";
-import type { DexPoolConfig, ArbPoolsConfig } from "../types";
+import type { DexPoolConfig, ArbPoolsConfig, PumpFeeTier } from "../types";
 import { DexType, TokenSymbol } from "../types";
 import {
 	decodePumpFunPool,
@@ -67,15 +67,16 @@ async function initAmm(
 	}
 
 	const feeConfigInfo = await retry(() => connection.getAccountInfo(PUMP_FEE_CONFIG));
+	let feeTiers: PumpFeeTier[] = [];
 	if (feeConfigInfo) {
-		const tiers = decodePumpFeeConfig(feeConfigInfo.data as Buffer);
-		if (tiers.length > 0) {
-			decoded.feeBps = selectFeeTier(tiers, decoded.quoteReserve);
+		feeTiers = decodePumpFeeConfig(feeConfigInfo.data as Buffer);
+		if (feeTiers.length > 0) {
+			decoded.feeBps = selectFeeTier(feeTiers, decoded.quoteReserve);
 		}
 	}
 
 	const service = new AmmStateService();
-	service.init(decoded);
+	service.init(decoded, feeTiers);
 	poolState.register(pool.poolAddress, service);
 
 	log.success(

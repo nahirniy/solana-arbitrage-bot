@@ -1,16 +1,19 @@
-import type { AmmPoolState, PoolStateHandler } from "../types";
+import type { AmmPoolState, PumpFeeTier, PoolStateHandler } from "../types";
 import { TOKEN_DECIMALS } from "../config";
-import { decodeTokenAccountBalance } from "../decoders";
+import { decodeTokenAccountBalance, selectFeeTier } from "../decoders";
 import { ammGetPrice } from "../math";
 import { log, formatPrice } from "../utils";
 
 export class AmmStateService implements PoolStateHandler {
 	private state: AmmPoolState | null = null;
+	private feeTiers: readonly PumpFeeTier[] = [];
 	private reserves = new Map<string, bigint>();
 	private pendingReserves = new Map<string, bigint>();
 	private updateTracker = new Set<string>();
-	init(state: AmmPoolState): void {
+
+	init(state: AmmPoolState, feeTiers: readonly PumpFeeTier[]): void {
 		this.state = state;
+		this.feeTiers = feeTiers;
 		this.state.price = this.calcPrice();
 		this.reserves.set(state.baseVault, state.baseReserve);
 		this.reserves.set(state.quoteVault, state.quoteReserve);
@@ -44,6 +47,9 @@ export class AmmStateService implements PoolStateHandler {
 		this.state.baseReserve = this.reserves.get(this.state.baseVault) ?? 0n;
 		this.state.quoteReserve = this.reserves.get(this.state.quoteVault) ?? 0n;
 		this.state.price = this.calcPrice();
+		if (this.feeTiers.length > 0) {
+			this.state.feeBps = selectFeeTier(this.feeTiers, this.state.quoteReserve);
+		}
 		log.info(`[amm] price=${formatPrice(this.state.price, this.state.baseSymbol, this.state.quoteSymbol)}`);
 
 		this.pendingReserves.clear();
