@@ -84,7 +84,7 @@ function toOnChainDex(dex: DexType): number {
 	switch (dex) {
 		case DexType.PUMPSWAP:
 			return ONCHAIN_DEX_PUMPSWAP;
-		case DexType.METEORA_DLMM:
+		case DexType.METEORA:
 			return ONCHAIN_DEX_METEORA;
 	}
 }

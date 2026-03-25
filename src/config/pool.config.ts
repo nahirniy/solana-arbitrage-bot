@@ -9,7 +9,7 @@ const POOL_DETAILS: readonly PoolDetails[] = [
 		poolAddress: "8BhCzFjnHmFyZEdh6JNgoQNRHCS2R8KHKYpGviocNYSa"
 	},
 	{
-		dexType: DexType.METEORA_DLMM,
+		dexType: DexType.METEORA,
 		baseToken: TokenSymbol.LIA,
 		quoteToken: TokenSymbol.WSOL,
 		poolAddress: "HPx4ySmLFFWWwwA8q7bgXZncoAmDgEmyJKdbSvucx7AJ"

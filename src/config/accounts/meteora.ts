@@ -1,11 +1,11 @@
 import { PublicKey } from "@solana/web3.js";
 import type { AccountMeta } from "@solana/web3.js";
-import type { DlmmPoolState, DexAccountsContext } from "../../types";
+import type { MeteoraPoolState, DexAccountsContext } from "../../types";
 import { METEORA_PROGRAM, MEMO_PROGRAM } from "../program.config";
 import { deriveBinArrayPDA } from "../../utils";
 
 export function getMeteoraAccounts({ poolState }: DexAccountsContext): AccountMeta[] {
-	const state = poolState as DlmmPoolState;
+	const state = poolState as MeteoraPoolState;
 
 	const accounts: AccountMeta[] = [
 		{ pubkey: new PublicKey(state.poolAddress), isSigner: false, isWritable: true },

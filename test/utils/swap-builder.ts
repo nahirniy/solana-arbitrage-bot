@@ -1,7 +1,7 @@
 import { PublicKey, SystemProgram, TransactionInstruction } from "@solana/web3.js";
 import { TOKEN_PROGRAM_ID, TOKEN_2022_PROGRAM_ID, ASSOCIATED_TOKEN_PROGRAM_ID } from "@solana/spl-token";
 import type { AccountMeta } from "@solana/web3.js";
-import type { PumpSwapPoolState, DlmmPoolState, WalletAccounts } from "../../src/types";
+import type { PumpSwapPoolState, MeteoraPoolState, WalletAccounts } from "../../src/types";
 import {
 	PUMP_PROGRAM,
 	PUMP_FEE_PROGRAM,
@@ -122,7 +122,7 @@ export function buildMeteoraSwap(
 	amountIn: bigint,
 	swapXtoY: boolean,
 	walletAccounts: WalletAccounts,
-	dlmmState: DlmmPoolState
+	meteoraState: MeteoraPoolState
 ): TransactionInstruction {
 	// 8 disc + 8 amount + 8 min_out + 4 remaining_accounts_info
 	const data = Buffer.alloc(28);
@@ -156,15 +156,15 @@ export function buildMeteoraSwap(
 	const userTokenOut = swapXtoY ? w.userQuoteAta : w.userBaseAta;
 
 	const keys: AccountMeta[] = [
-		{ pubkey: new PublicKey(dlmmState.poolAddress), isSigner: false, isWritable: true },
+		{ pubkey: new PublicKey(meteoraState.poolAddress), isSigner: false, isWritable: true },
 		{ pubkey: METEORA_PROGRAM, isSigner: false, isWritable: false },
-		{ pubkey: new PublicKey(dlmmState.reserveX), isSigner: false, isWritable: true },
-		{ pubkey: new PublicKey(dlmmState.reserveY), isSigner: false, isWritable: true },
+		{ pubkey: new PublicKey(meteoraState.reserveX), isSigner: false, isWritable: true },
+		{ pubkey: new PublicKey(meteoraState.reserveY), isSigner: false, isWritable: true },
 		{ pubkey: userTokenIn, isSigner: false, isWritable: true },
 		{ pubkey: userTokenOut, isSigner: false, isWritable: true },
 		{ pubkey: LIA_MINT, isSigner: false, isWritable: false },
 		{ pubkey: WSOL_MINT, isSigner: false, isWritable: false },
-		{ pubkey: deriveOracle(dlmmState.poolAddress), isSigner: false, isWritable: true },
+		{ pubkey: deriveOracle(meteoraState.poolAddress), isSigner: false, isWritable: true },
 		{ pubkey: METEORA_PROGRAM, isSigner: false, isWritable: false },
 		{ pubkey: w.wallet, isSigner: true, isWritable: true },
 		{ pubkey: TOKEN_2022_PROGRAM_ID, isSigner: false, isWritable: false },
@@ -174,9 +174,9 @@ export function buildMeteoraSwap(
 		{ pubkey: METEORA_PROGRAM, isSigner: false, isWritable: false }
 	];
 
-	const binArrayIndices = Array.from(dlmmState.binArrays.keys()).sort((a, b) => a - b);
+	const binArrayIndices = Array.from(meteoraState.binArrays.keys()).sort((a, b) => a - b);
 	for (const index of binArrayIndices) {
-		keys.push({ pubkey: deriveBinArrayPDA(dlmmState.poolAddress, index), isSigner: false, isWritable: true });
+		keys.push({ pubkey: deriveBinArrayPDA(meteoraState.poolAddress, index), isSigner: false, isWritable: true });
 	}
 
 	return new TransactionInstruction({ programId: METEORA_PROGRAM, keys, data: data2 });

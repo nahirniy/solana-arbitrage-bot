@@ -1,5 +1,5 @@
 import type { AnyPoolState, PoolStateHandler } from "../types";
-import { DlmmStateService } from "./dlmm-state.service";
+import { MeteoraStateService } from "./meteora-state.service";
 
 export class PoolStateService {
 	private readonly poolsByAddress = new Map<string, PoolStateHandler>();
@@ -26,7 +26,7 @@ export class PoolStateService {
 
 		const changed = handler.handleUpdate(pubkey, data);
 
-		if (changed && handler instanceof DlmmStateService && handler.needsResubscription()) {
+		if (changed && handler instanceof MeteoraStateService && handler.needsResubscription()) {
 			this.resubscriptionNeeded = true;
 		}
 
@@ -39,15 +39,15 @@ export class PoolStateService {
 		return true;
 	}
 
-	getDlmmHandlers(): DlmmStateService[] {
-		const handlers: DlmmStateService[] = [];
+	getMeteoraHandlers(): MeteoraStateService[] {
+		const handlers: MeteoraStateService[] = [];
 		for (const handler of this.poolsByAddress.values()) {
-			if (handler instanceof DlmmStateService) handlers.push(handler);
+			if (handler instanceof MeteoraStateService) handlers.push(handler);
 		}
 		return handlers;
 	}
 
-	// Called after DLMM resubscription to update pubkey -> handler mapping
+	// Called after Meteora resubscription to update pubkey -> handler mapping
 	refreshSubscriptions(handler: PoolStateHandler): void {
 		// remove old pubkeys for this handler
 		for (const [pubkey, h] of this.handlersByPubkey) {

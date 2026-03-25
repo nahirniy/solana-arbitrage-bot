@@ -1,7 +1,7 @@
 import type { PumpSwapPoolState } from "./pumpswap.types";
-import type { DlmmPoolState } from "./dlmm.types";
+import type { MeteoraPoolState } from "./meteora.types";
 
-export type AnyPoolState = PumpSwapPoolState | DlmmPoolState;
+export type AnyPoolState = PumpSwapPoolState | MeteoraPoolState;
 
 export interface PoolStateHandler {
 	isSubscribed(pubkey: string): boolean;

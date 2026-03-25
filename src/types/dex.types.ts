@@ -1,6 +1,6 @@
 export enum DexType {
 	PUMPSWAP = "PUMPSWAP",
-	METEORA_DLMM = "METEORA_DLMM"
+	METEORA = "METEORA"
 }
 
 export enum TokenSymbol {

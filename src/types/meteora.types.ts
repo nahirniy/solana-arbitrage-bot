@@ -1,4 +1,4 @@
-export interface DlmmFeeParams {
+export interface MeteoraFeeParams {
 	readonly baseFactor: number;
 	readonly filterPeriod: number;
 	readonly decayPeriod: number;
@@ -11,21 +11,21 @@ export interface DlmmFeeParams {
 	lastUpdateTimestamp: number;
 }
 
-export interface DlmmBin {
+export interface MeteoraBin {
 	readonly id: number;
 	amountX: bigint;
 	amountY: bigint;
 }
 
-export interface DlmmBinArray {
+export interface MeteoraBinArray {
 	readonly index: number;
 	readonly lbPair: string;
-	bins: DlmmBin[];
+	bins: MeteoraBin[];
 }
 
 import type { TokenSymbol } from "./dex.types";
 
-export interface DlmmPoolState {
+export interface MeteoraPoolState {
 	readonly poolAddress: string;
 	activeId: number;
 	readonly binStep: number;
@@ -35,7 +35,7 @@ export interface DlmmPoolState {
 	readonly reserveY: string;
 	baseSymbol: TokenSymbol;
 	quoteSymbol: TokenSymbol;
-	feeParams: DlmmFeeParams;
-	binArrays: Map<number, DlmmBinArray>;
+	feeParams: MeteoraFeeParams;
+	binArrays: Map<number, MeteoraBinArray>;
 	price: bigint;
 }

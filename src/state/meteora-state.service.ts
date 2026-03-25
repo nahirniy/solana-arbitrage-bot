@@ -1,16 +1,16 @@
 import { PublicKey } from "@solana/web3.js";
 import { BINS_PER_ARRAY, TOKEN_DECIMALS } from "../config";
 import { decodeMeteoraPool, decodeMeteoraBinArray } from "../decoders";
-import type { DlmmPoolState, DlmmBinArray, PoolStateHandler } from "../types";
+import type { MeteoraPoolState, MeteoraBinArray, PoolStateHandler } from "../types";
 import { deriveBinArrayPDA, log, formatPrice } from "../utils";
 import { getBinPrice } from "../math";
 
-export class DlmmStateService implements PoolStateHandler {
-	private state: DlmmPoolState | null = null;
+export class MeteoraStateService implements PoolStateHandler {
+	private state: MeteoraPoolState | null = null;
 	private subscribedArrays = new Map<string, number>(); // pubkey -> array index
 	private centerArrayIndex = 0;
 
-	init(state: DlmmPoolState, binArrays: { pubkey: string; data: DlmmBinArray }[]): void {
+	init(state: MeteoraPoolState, binArrays: { pubkey: string; data: MeteoraBinArray }[]): void {
 		this.state = state;
 
 		for (const { pubkey, data } of binArrays) {
@@ -41,7 +41,7 @@ export class DlmmStateService implements PoolStateHandler {
 		return false;
 	}
 
-	getState(): DlmmPoolState | null {
+	getState(): MeteoraPoolState | null {
 		return this.state;
 	}
 
@@ -66,7 +66,7 @@ export class DlmmStateService implements PoolStateHandler {
 		return indices.map((idx) => deriveBinArrayPDA(this.state!.poolAddress, idx));
 	}
 
-	applyResubscription(binArrays: { pubkey: string; data: DlmmBinArray }[]): void {
+	applyResubscription(binArrays: { pubkey: string; data: MeteoraBinArray }[]): void {
 		if (!this.state) return;
 
 		for (const [, idx] of this.subscribedArrays) {
@@ -102,7 +102,7 @@ export class DlmmStateService implements PoolStateHandler {
 		this.state.feeParams.volatilityReference = feeParams.volatilityReference;
 		this.state.price = this.calcPrice();
 		log.info(
-			`[dlmm] price=${formatPrice(this.state.price, this.state.baseSymbol, this.state.quoteSymbol)} (activeId=${activeId})`
+			`[meteora] price=${formatPrice(this.state.price, this.state.baseSymbol, this.state.quoteSymbol)} (activeId=${activeId})`
 		);
 
 		return true;

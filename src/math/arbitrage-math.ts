@@ -1,8 +1,8 @@
 import { DexType } from "../types";
-import type { PumpSwapPoolState, DlmmPoolState, AnyPoolState, ArbRoute, ArbOpportunity, DexPoolConfig } from "../types";
+import type { PumpSwapPoolState, MeteoraPoolState, AnyPoolState, ArbRoute, ArbOpportunity, DexPoolConfig } from "../types";
 import { FIXED_TRADE_SIZE_LAMPORTS } from "../config";
 import { pumpSwapGetBuyOutput, pumpSwapGetSellOutput } from "./pumpswap-math";
-import { dlmmGetAmountOut } from "./dlmm-math";
+import { meteoraGetAmountOut } from "./meteora-math";
 
 export interface PoolWithState {
 	readonly pool: DexPoolConfig;
@@ -83,10 +83,10 @@ function simulateBuy(solIn: bigint, dexType: DexType, state: AnyPoolState): bigi
 			const s = state as PumpSwapPoolState;
 			return pumpSwapGetBuyOutput(solIn, s.quoteReserve, s.baseReserve, s.feeBps);
 		}
-		case DexType.METEORA_DLMM: {
-			const s = state as DlmmPoolState;
+		case DexType.METEORA: {
+			const s = state as MeteoraPoolState;
 			const bins = getOrderedBins(s, true);
-			return dlmmGetAmountOut(solIn, bins, s.binStep, s.feeParams, false);
+			return meteoraGetAmountOut(solIn, bins, s.binStep, s.feeParams, false);
 		}
 		default:
 			return assertNever(dexType);
@@ -99,17 +99,17 @@ function simulateSell(tokensIn: bigint, dexType: DexType, state: AnyPoolState): 
 			const s = state as PumpSwapPoolState;
 			return pumpSwapGetSellOutput(tokensIn, s.baseReserve, s.quoteReserve, s.feeBps);
 		}
-		case DexType.METEORA_DLMM: {
-			const s = state as DlmmPoolState;
+		case DexType.METEORA: {
+			const s = state as MeteoraPoolState;
 			const bins = getOrderedBins(s, false);
-			return dlmmGetAmountOut(tokensIn, bins, s.binStep, s.feeParams, true);
+			return meteoraGetAmountOut(tokensIn, bins, s.binStep, s.feeParams, true);
 		}
 		default:
 			return assertNever(dexType);
 	}
 }
 
-function getOrderedBins(state: DlmmPoolState, buyingBase: boolean) {
+function getOrderedBins(state: MeteoraPoolState, buyingBase: boolean) {
 	const allBins = Array.from(state.binArrays.values()).flatMap((arr) => arr.bins);
 
 	if (buyingBase) {

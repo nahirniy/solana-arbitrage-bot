@@ -1,9 +1,9 @@
 import { PublicKey } from "@solana/web3.js";
-import { METEORA_DLMM_PROGRAM } from "../config";
+import { METEORA_PROGRAM } from "../config";
 
 const cache = new Map<string, PublicKey>();
 
-// Derives the on-chain address of a Meteora DLMM bin array account.
+// Derives the on-chain address of a Meteora bin array account.
 // Each bin array holds 70 bins; binArrayIndex determines which chunk.
 export function deriveBinArrayPDA(poolAddress: string, binArrayIndex: number): PublicKey {
 	const cacheKey = `${poolAddress}:${binArrayIndex}`;
@@ -15,7 +15,7 @@ export function deriveBinArrayPDA(poolAddress: string, binArrayIndex: number): P
 
 	const [pda] = PublicKey.findProgramAddressSync(
 		[Buffer.from("bin_array"), new PublicKey(poolAddress).toBuffer(), indexBuf],
-		new PublicKey(METEORA_DLMM_PROGRAM)
+		new PublicKey(METEORA_PROGRAM)
 	);
 
 	cache.set(cacheKey, pda);

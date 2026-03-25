@@ -1,5 +1,5 @@
 import { PRECISION, FEE_PRECISION } from "../config";
-import { DlmmBin, DlmmFeeParams } from "../types";
+import { MeteoraBin, MeteoraFeeParams } from "../types";
 import { min } from "./bigint-math";
 
 function powPrecision(base: bigint, exp: number): bigint {
@@ -31,7 +31,7 @@ export function getBinPrice(binId: number, binStep: number): bigint {
 // Recompute volatility accumulator the same way the on-chain program does at swap time.
 // The program updates indexReference to activeId BEFORE computing delta,
 // so if activeId hasn't changed since last update, delta = 0 and variable fee = 0
-export function updateVolatilityAccumulator(feeParams: DlmmFeeParams, currentTimestamp: number): number {
+export function updateVolatilityAccumulator(feeParams: MeteoraFeeParams, currentTimestamp: number): number {
 	const elapsed = currentTimestamp - feeParams.lastUpdateTimestamp;
 	if (elapsed < feeParams.filterPeriod) return feeParams.volatilityAccumulator;
 
@@ -46,7 +46,7 @@ export function updateVolatilityAccumulator(feeParams: DlmmFeeParams, currentTim
 }
 
 // Fee rate in FEE_PRECISION (1e9) units
-export function getDlmmFeeRate(feeParams: DlmmFeeParams, binStep: number): bigint {
+export function getMeteoraFeeRate(feeParams: MeteoraFeeParams, binStep: number): bigint {
 	const va = updateVolatilityAccumulator(feeParams, Math.floor(Date.now() / 1000));
 	const baseFeeRate = BigInt(feeParams.baseFactor) * BigInt(binStep) * 10n;
 
@@ -64,11 +64,11 @@ export function getDlmmFeeRate(feeParams: DlmmFeeParams, binStep: number): bigin
 // swapXtoY: selling X for Y (lower bin IDs), !swapXtoY: selling Y for X (higher bin IDs)
 // Bins must be pre-ordered: descending IDs for X→Y, ascending for Y→X.
 // Fee rate changes per bin via va(k) = vr + |ir - (activeID ± k)| * 10000
-export function dlmmGetAmountOut(
+export function meteoraGetAmountOut(
 	amountIn: bigint,
-	orderedBins: readonly DlmmBin[],
+	orderedBins: readonly MeteoraBin[],
 	binStep: number,
-	feeParams: DlmmFeeParams,
+	feeParams: MeteoraFeeParams,
 	swapXtoY: boolean
 ): bigint {
 	const activeId = orderedBins.length > 0 ? orderedBins[0].id : 0;
@@ -123,9 +123,9 @@ export function dlmmGetAmountOut(
 }
 
 // How much input needed for a desired output, walking through bins.
-export function dlmmGetAmountIn(
+export function meteoraGetAmountIn(
 	amountOut: bigint,
-	orderedBins: readonly DlmmBin[],
+	orderedBins: readonly MeteoraBin[],
 	binStep: number,
 	feeRate: bigint,
 	swapXtoY: boolean

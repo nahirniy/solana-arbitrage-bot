@@ -5,9 +5,9 @@ import bs58 from "bs58";
 import { loadEnv, buildArbPoolsConfigs } from "../src/config";
 import { PoolStateService, initializeState } from "../src/state";
 import { pumpSwapGetBuyOutput, pumpSwapGetSellOutput } from "../src/math/pumpswap-math";
-import { dlmmGetAmountOut } from "../src/math/dlmm-math";
+import { meteoraGetAmountOut } from "../src/math/meteora-math";
 import { DexType } from "../src/types";
-import type { PumpSwapPoolState, DlmmPoolState, WalletAccounts } from "../src/types";
+import type { PumpSwapPoolState, MeteoraPoolState, WalletAccounts } from "../src/types";
 import { buildPumpSwapBuy, buildPumpSwapSell, buildMeteoraSwap, simulateSwapAndGetDelta, getTokenBalance } from "./utils";
 import { getAssociatedTokenAddressSync, TOKEN_PROGRAM_ID, TOKEN_2022_PROGRAM_ID } from "@solana/spl-token";
 import { PublicKey } from "@solana/web3.js";
@@ -24,9 +24,9 @@ describe("Swap Math vs On-Chain Estimation", function () {
 	let keypair: Keypair;
 	let walletAccounts: WalletAccounts;
 	let pumpSwapState: PumpSwapPoolState;
-	let dlmmState: DlmmPoolState;
+	let meteoraState: MeteoraPoolState;
 	let pumpPoolAddress: string;
-	let dlmmPoolAddress: string;
+	let meteoraPoolAddress: string;
 
 	before(async function () {
 		const env = loadEnv();
@@ -51,12 +51,12 @@ describe("Swap Math vs On-Chain Estimation", function () {
 
 		const config = arbPoolsConfigs[0];
 		const pumpPool = config.pools.find((p) => p.dexType === DexType.PUMPSWAP)!;
-		const meteoraPool = config.pools.find((p) => p.dexType === DexType.METEORA_DLMM)!;
+		const meteoraPool = config.pools.find((p) => p.dexType === DexType.METEORA)!;
 
 		pumpPoolAddress = pumpPool.poolAddress;
 		pumpSwapState = poolState.getPoolState(pumpPoolAddress) as PumpSwapPoolState;
-		dlmmPoolAddress = meteoraPool.poolAddress;
-		dlmmState = poolState.getPoolState(dlmmPoolAddress) as DlmmPoolState;
+		meteoraPoolAddress = meteoraPool.poolAddress;
+		meteoraState = poolState.getPoolState(meteoraPoolAddress) as MeteoraPoolState;
 	});
 
 	describe("PumpSwap AMM", function () {
@@ -98,20 +98,20 @@ describe("Swap Math vs On-Chain Estimation", function () {
 		}
 	});
 
-	describe("Meteora DLMM", function () {
+	describe("Meteora Meteora", function () {
 		beforeEach(async function () {
 			const freshConfigs = buildArbPoolsConfigs();
 			const freshState = new PoolStateService();
 			await initializeState(connection, freshConfigs, freshState);
-			dlmmState = freshState.getPoolState(dlmmPoolAddress) as DlmmPoolState;
+			meteoraState = freshState.getPoolState(meteoraPoolAddress) as MeteoraPoolState;
 		});
 
 		for (const buyAmount of BUY_AMOUNTS) {
 			it(`buy ${Number(buyAmount) / 1e9} SOL → LIA matches on-chain`, async function () {
-				const bins = getOrderedBins(dlmmState, false);
-				const expected = dlmmGetAmountOut(buyAmount, bins, dlmmState.binStep, dlmmState.feeParams, false);
+				const bins = getOrderedBins(meteoraState, false);
+				const expected = meteoraGetAmountOut(buyAmount, bins, meteoraState.binStep, meteoraState.feeParams, false);
 
-				const ix = buildMeteoraSwap(buyAmount, false, walletAccounts, dlmmState);
+				const ix = buildMeteoraSwap(buyAmount, false, walletAccounts, meteoraState);
 				const actual = await simulateSwapAndGetDelta(connection, keypair, ix, walletAccounts.userBaseAta);
 
 				console.log(`    Math:    ${expected} LIA raw`);
@@ -127,10 +127,10 @@ describe("Swap Math vs On-Chain Estimation", function () {
 				if (liaBalance === 0n) return this.skip();
 
 				const amount = liaBalance < sellAmount ? liaBalance : sellAmount;
-				const bins = getOrderedBins(dlmmState, true);
-				const expected = dlmmGetAmountOut(amount, bins, dlmmState.binStep, dlmmState.feeParams, true);
+				const bins = getOrderedBins(meteoraState, true);
+				const expected = meteoraGetAmountOut(amount, bins, meteoraState.binStep, meteoraState.feeParams, true);
 
-				const ix = buildMeteoraSwap(amount, true, walletAccounts, dlmmState);
+				const ix = buildMeteoraSwap(amount, true, walletAccounts, meteoraState);
 				const actual = await simulateSwapAndGetDelta(connection, keypair, ix, walletAccounts.userQuoteAta);
 
 				console.log(`    Math:    ${expected} lamports`);
@@ -142,7 +142,7 @@ describe("Swap Math vs On-Chain Estimation", function () {
 	});
 });
 
-function getOrderedBins(state: DlmmPoolState, swapXtoY: boolean) {
+function getOrderedBins(state: MeteoraPoolState, swapXtoY: boolean) {
 	const allBins = Array.from(state.binArrays.values()).flatMap((arr) => arr.bins);
 
 	if (swapXtoY) {

@@ -27,7 +27,7 @@ export const PUMP_BUY_FEE_RECIPIENT_ATA = new PublicKey("DWpvfqzGWuVy9jVSKSShdM2
 export const PUMP_SELL_FEE_RECIPIENT = new PublicKey("62qc2CNXwrYqQScmEdiZFFAnJR262PxWEuNQtxfafNgV");
 export const PUMP_SELL_FEE_RECIPIENT_ATA = new PublicKey("94qWNrtmfn42h3ZjUZwWvK1MEo9uVmmrBPd2hpNjYDjb");
 
-// ── Meteora DLMM ────────────────────────────────────────────────────
+// ── Meteora Meteora ────────────────────────────────────────────────────
 
 export const METEORA_PROGRAM = new PublicKey("LBUZKhRxPF3XUpBCjp4YzTKgLccjZhTSDM9YuVaPwxo");
 export const MEMO_PROGRAM = new PublicKey("MemoSq4gqABAXKb96qnH8TysNcWxMyWCqXgDLGmfcHr");

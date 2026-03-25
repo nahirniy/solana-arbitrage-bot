@@ -80,7 +80,7 @@ export class GeyserListenerService {
 				if (changed) {
 					this.arbDetector.scan(slot);
 					if (this.poolState.consumeResubscriptionFlag()) {
-						this.handleDlmmResubscription();
+						this.handleMeteoraResubscription();
 					}
 				}
 			});
@@ -100,8 +100,8 @@ export class GeyserListenerService {
 		}
 	}
 
-	private async handleDlmmResubscription(): Promise<void> {
-		for (const handler of this.poolState.getDlmmHandlers()) {
+	private async handleMeteoraResubscription(): Promise<void> {
+		for (const handler of this.poolState.getMeteoraHandlers()) {
 			if (!handler.needsResubscription()) continue;
 
 			const pdas = handler.getResubscriptionPDAs();
@@ -115,9 +115,9 @@ export class GeyserListenerService {
 				}
 				handler.applyResubscription(binArrays);
 				this.poolState.refreshSubscriptions(handler);
-				log.info(`[geyser] DLMM bin arrays resubscribed (${binArrays.length} arrays)`);
+				log.info(`[geyser] Meteora bin arrays resubscribed (${binArrays.length} arrays)`);
 			} catch (err) {
-				log.error(`[geyser] DLMM resubscription failed: ${formatError(err)}`);
+				log.error(`[geyser] Meteora resubscription failed: ${formatError(err)}`);
 			}
 		}
 

@@ -13,7 +13,7 @@ import {
 import { PUMP_FEE_CONFIG } from "../config/program.config";
 import { retry, log, deriveBinArrayPDA, formatPrice } from "../utils";
 import { PumpSwapStateService } from "./pumpswap-state.service";
-import { DlmmStateService } from "./dlmm-state.service";
+import { MeteoraStateService } from "./meteora-state.service";
 import { PoolStateService } from "./pool-state.service";
 
 export async function initializeState(
@@ -27,8 +27,8 @@ export async function initializeState(
 				case DexType.PUMPSWAP:
 					await initPumpSwap(connection, pool, poolState, config.baseToken, config.quoteToken);
 					break;
-				case DexType.METEORA_DLMM:
-					await initDlmm(connection, pool, poolState, config.baseToken, config.quoteToken);
+				case DexType.METEORA:
+					await initMeteora(connection, pool, poolState, config.baseToken, config.quoteToken);
 					break;
 				default:
 					assertNever(pool.dexType);
@@ -84,7 +84,7 @@ async function initPumpSwap(
 	);
 }
 
-async function initDlmm(
+async function initMeteora(
 	connection: Connection,
 	pool: DexPoolConfig,
 	poolState: PoolStateService,
@@ -92,10 +92,10 @@ async function initDlmm(
 	quoteSymbol: TokenSymbol
 ): Promise<void> {
 	const accountInfo = await retry(() => connection.getAccountInfo(new PublicKey(pool.poolAddress)));
-	if (!accountInfo) throw new Error(`DLMM pool account not found: ${pool.poolAddress}`);
+	if (!accountInfo) throw new Error(`Meteora pool account not found: ${pool.poolAddress}`);
 
 	const decoded = decodeMeteoraPool(pool.poolAddress, accountInfo.data as Buffer);
-	if (!decoded) throw new Error(`Failed to decode DLMM pool: ${pool.poolAddress}`);
+	if (!decoded) throw new Error(`Failed to decode Meteora pool: ${pool.poolAddress}`);
 	decoded.baseSymbol = baseSymbol;
 	decoded.quoteSymbol = quoteSymbol;
 
@@ -116,12 +116,12 @@ async function initDlmm(
 		binArrays.push({ pubkey: binArrayPDAs[i].toBase58(), data: binArray });
 	}
 
-	const service = new DlmmStateService();
+	const service = new MeteoraStateService();
 	service.init(decoded, binArrays);
 	poolState.register(pool.poolAddress, service);
 
 	log.success(
-		`[init] DLMM pool loaded: ${pool.poolAddress} (activeId=${decoded.activeId}, binStep=${decoded.binStep}, arrays=${binArrays.length}, price=${formatPrice(decoded.price, baseSymbol, quoteSymbol)})`
+		`[init] Meteora pool loaded: ${pool.poolAddress} (activeId=${decoded.activeId}, binStep=${decoded.binStep}, arrays=${binArrays.length}, price=${formatPrice(decoded.price, baseSymbol, quoteSymbol)})`
 	);
 }
 

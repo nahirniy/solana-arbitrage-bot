@@ -1,8 +1,8 @@
 import { PublicKey } from "@solana/web3.js";
 import { BINS_PER_ARRAY } from "../config";
-import { DlmmPoolState, DlmmFeeParams, DlmmBinArray, DlmmBin, TokenSymbol } from "../types";
+import { MeteoraPoolState, MeteoraFeeParams, MeteoraBinArray, MeteoraBin, TokenSymbol } from "../types";
 
-// ── Meteora DLMM Pool (LbPair) account layout ───────────────────────
+// ── Meteora Meteora Pool (LbPair) account layout ───────────────────────
 // Offset  Size  Field
 //  0       8    discriminator
 //  8      32    StaticParameters
@@ -43,10 +43,10 @@ function readPubkey(data: Buffer, offset: number): string {
 	return new PublicKey(data.subarray(offset, offset + 32)).toBase58();
 }
 
-export function decodeMeteoraPool(poolAddress: string, data: Buffer): DlmmPoolState | null {
+export function decodeMeteoraPool(poolAddress: string, data: Buffer): MeteoraPoolState | null {
 	if (data.length < POOL_MIN_SIZE) return null;
 
-	const feeParams: DlmmFeeParams = {
+	const feeParams: MeteoraFeeParams = {
 		baseFactor: data.readUInt16LE(SP_BASE_FACTOR),
 		filterPeriod: data.readUInt16LE(SP_FILTER_PERIOD),
 		decayPeriod: data.readUInt16LE(SP_DECAY_PERIOD),
@@ -93,13 +93,13 @@ const BIN_ARRAY_HEADER_SIZE = 56;
 const BIN_SIZE = 144;
 const BIN_ARRAY_MIN_SIZE = BIN_ARRAY_HEADER_SIZE + BINS_PER_ARRAY * BIN_SIZE;
 
-export function decodeMeteoraBinArray(data: Buffer): DlmmBinArray | null {
+export function decodeMeteoraBinArray(data: Buffer): MeteoraBinArray | null {
 	if (data.length < BIN_ARRAY_MIN_SIZE) return null;
 
 	const index = Number(data.readBigInt64LE(8));
 	const lbPair = readPubkey(data, 24);
 
-	const bins: DlmmBin[] = [];
+	const bins: MeteoraBin[] = [];
 	for (let i = 0; i < BINS_PER_ARRAY; i++) {
 		const binOffset = BIN_ARRAY_HEADER_SIZE + i * BIN_SIZE;
 		const amountX = data.readBigUInt64LE(binOffset);

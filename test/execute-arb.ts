@@ -24,18 +24,18 @@ async function main(): Promise<void> {
 
 	const config = arbPoolsConfigs[0];
 	const pumpPool = config.pools.find((p) => p.dexType === DexType.PUMPSWAP);
-	const meteoraPool = config.pools.find((p) => p.dexType === DexType.METEORA_DLMM);
+	const meteoraPool = config.pools.find((p) => p.dexType === DexType.METEORA);
 	if (!pumpPool || !meteoraPool) throw new Error("Pool config incomplete");
 
 	const buyPumpSellMeteora: ArbRoute = {
 		buyDex: DexType.PUMPSWAP,
 		buyPoolAddress: pumpPool.poolAddress,
-		sellDex: DexType.METEORA_DLMM,
+		sellDex: DexType.METEORA,
 		sellPoolAddress: meteoraPool.poolAddress
 	};
 
 	const buyMeteoraSellPump: ArbRoute = {
-		buyDex: DexType.METEORA_DLMM,
+		buyDex: DexType.METEORA,
 		buyPoolAddress: meteoraPool.poolAddress,
 		sellDex: DexType.PUMPSWAP,
 		sellPoolAddress: pumpPool.poolAddress

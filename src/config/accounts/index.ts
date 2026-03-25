@@ -8,5 +8,5 @@ import { getMeteoraAccounts } from "./meteora";
 // Adding a new DEX = create accounts file + register here
 export const dexAccountProviders = new Map<DexType, DexAccountsProvider>([
 	[DexType.PUMPSWAP, getPumpSwapAccounts],
-	[DexType.METEORA_DLMM, getMeteoraAccounts]
+	[DexType.METEORA, getMeteoraAccounts]
 ]);
