@@ -1,8 +1,9 @@
 import { DexType } from "../types";
 import type { AmmPoolState, DlmmPoolState, AnyPoolState, ArbRoute, ArbOpportunity, DexPoolConfig } from "../types";
-import { FIXED_TRADE_SIZE_LAMPORTS, PUMPFUN_AMM_FEE_BIPS } from "../config";
-import { ammGetAmountOut } from "./amm-math";
-import { dlmmGetAmountOut, getDlmmFeeRate } from "./dlmm-math";
+import { FIXED_TRADE_SIZE_LAMPORTS } from "../config";
+import { PUMPFUN_LP_FEE_BIPS, PUMPFUN_PROTOCOL_FEE_BIPS, PUMPFUN_CREATOR_FEE_BIPS } from "../config";
+import { ammGetBuyOutput, ammGetSellOutput } from "./amm-math";
+import { dlmmGetAmountOut } from "./dlmm-math";
 
 export interface PoolWithState {
 	readonly pool: DexPoolConfig;
@@ -81,13 +82,16 @@ function simulateBuy(solIn: bigint, dexType: DexType, state: AnyPoolState): bigi
 	switch (dexType) {
 		case DexType.PUMPFUN_AMM: {
 			const s = state as AmmPoolState;
-			return ammGetAmountOut(solIn, s.quoteReserve, s.baseReserve, PUMPFUN_AMM_FEE_BIPS);
+			return ammGetBuyOutput(solIn, s.quoteReserve, s.baseReserve, [
+				PUMPFUN_LP_FEE_BIPS,
+				PUMPFUN_PROTOCOL_FEE_BIPS,
+				PUMPFUN_CREATOR_FEE_BIPS
+			]);
 		}
 		case DexType.METEORA_DLMM: {
 			const s = state as DlmmPoolState;
-			const feeRate = getDlmmFeeRate(s.feeParams, s.binStep);
 			const bins = getOrderedBins(s, true);
-			return dlmmGetAmountOut(solIn, bins, s.binStep, feeRate, false);
+			return dlmmGetAmountOut(solIn, bins, s.binStep, s.feeParams, false);
 		}
 		default:
 			return assertNever(dexType);
@@ -98,13 +102,16 @@ function simulateSell(tokensIn: bigint, dexType: DexType, state: AnyPoolState): 
 	switch (dexType) {
 		case DexType.PUMPFUN_AMM: {
 			const s = state as AmmPoolState;
-			return ammGetAmountOut(tokensIn, s.baseReserve, s.quoteReserve, PUMPFUN_AMM_FEE_BIPS);
+			return ammGetSellOutput(tokensIn, s.baseReserve, s.quoteReserve, [
+				PUMPFUN_LP_FEE_BIPS,
+				PUMPFUN_PROTOCOL_FEE_BIPS,
+				PUMPFUN_CREATOR_FEE_BIPS
+			]);
 		}
 		case DexType.METEORA_DLMM: {
 			const s = state as DlmmPoolState;
-			const feeRate = getDlmmFeeRate(s.feeParams, s.binStep);
 			const bins = getOrderedBins(s, false);
-			return dlmmGetAmountOut(tokensIn, bins, s.binStep, feeRate, true);
+			return dlmmGetAmountOut(tokensIn, bins, s.binStep, s.feeParams, true);
 		}
 		default:
 			return assertNever(dexType);

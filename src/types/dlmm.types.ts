@@ -1,9 +1,14 @@
 export interface DlmmFeeParams {
 	readonly baseFactor: number;
+	readonly filterPeriod: number;
+	readonly decayPeriod: number;
+	readonly reductionFactor: number;
 	readonly variableFeeControl: number;
 	readonly maxVolatilityAccumulator: number;
 	volatilityAccumulator: number;
 	volatilityReference: number;
+	indexReference: number;
+	lastUpdateTimestamp: number;
 }
 
 export interface DlmmBin {

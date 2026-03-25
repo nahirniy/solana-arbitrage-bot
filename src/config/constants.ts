@@ -2,7 +2,11 @@ export const PRECISION = 10n ** 18n;
 
 export const MAX_BIPS = 10_000n;
 
-export const PUMPFUN_AMM_FEE_BIPS = 25n; // 0.25%
+// PumpFun fee rates from fee program (tier 0: mcap < 420 SOL)
+export const PUMPFUN_LP_FEE_BIPS = 2n;
+export const PUMPFUN_PROTOCOL_FEE_BIPS = 93n;
+export const PUMPFUN_CREATOR_FEE_BIPS = 30n;
+export const PUMPFUN_TOTAL_FEE_BIPS = PUMPFUN_LP_FEE_BIPS + PUMPFUN_PROTOCOL_FEE_BIPS + PUMPFUN_CREATOR_FEE_BIPS;
 
 // 1e9 — Meteora DLMM fee precision denominator
 export const FEE_PRECISION = 1_000_000_000n;

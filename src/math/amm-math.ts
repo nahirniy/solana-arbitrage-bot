@@ -1,25 +1,79 @@
-import { PRECISION, MAX_BIPS } from "../config";
+import { MAX_BIPS, PRECISION } from "../config";
 
-// Constant product swap (x * y = k)
-// Fee is passed as basis points — deducted from input before calculation
-// Works for any AMM: PumpFun (25 bips)
-export function ammGetAmountOut(amountIn: bigint, reserveIn: bigint, reserveOut: bigint, feeBips: bigint): bigint {
-	if (amountIn <= 0n || reserveIn <= 0n || reserveOut <= 0n) return 0n;
-
-	const amountInWithFee = amountIn * (MAX_BIPS - feeBips);
-	return (amountInWithFee * reserveOut) / (reserveIn * MAX_BIPS + amountInWithFee);
+function ceilDiv(a: bigint, b: bigint): bigint {
+	return (a + b - 1n) / b;
 }
 
-// Inverse: required input for a desired output amount
-export function ammGetAmountIn(amountOut: bigint, reserveIn: bigint, reserveOut: bigint, feeBips: bigint): bigint {
-	if (amountOut <= 0n || reserveIn <= 0n || amountOut >= reserveOut) return 0n;
+// ── PumpFun AMM buy (SOL → Token) ──────────────────────────────────
+//
+// PumpFun deducts fees from input before the swap. Unlike Uniswap where fee
+// is embedded in the formula, here each fee component (LP, protocol, creator)
+// is ceil-rounded independently, then subtracted from input.
+//
+// The pool also applies a -1 safety margin on the effective input (pool always
+// rounds in its own favor), so the final formula is pure constant product on
+// the reduced amount.
+//
+// feeBps: [lpBps, protocolBps, creatorBps]
+export function ammGetBuyOutput(
+	amountIn: bigint,
+	reserveIn: bigint,
+	reserveOut: bigint,
+	feeBps: readonly bigint[]
+): bigint {
+	if (amountIn <= 0n || reserveIn <= 0n || reserveOut <= 0n) return 0n;
 
-	return (reserveIn * amountOut * MAX_BIPS) / ((reserveOut - amountOut) * (MAX_BIPS - feeBips)) + 1n;
+	let totalBps = 0n;
+	for (const bps of feeBps) {
+		totalBps += bps;
+	}
+
+	// Approximate effective input from aggregate fee rate
+	let effectiveIn = (amountIn * MAX_BIPS) / (MAX_BIPS + totalBps);
+
+	// Individual ceil-rounded fees may exceed the aggregate estimate — adjust
+	let fee = 0n;
+	for (const bps of feeBps) {
+		fee += ceilDiv(effectiveIn * bps, MAX_BIPS);
+	}
+	if (effectiveIn + fee > amountIn) effectiveIn -= 1n;
+
+	return ((effectiveIn - 1n) * reserveOut) / (reserveIn + effectiveIn - 1n);
+}
+
+// ── PumpFun AMM sell (Token → SOL) ──────────────────────────────────
+//
+// Sell is straightforward: constant product first, fees after.
+//   grossOut = floor(amountIn * reserveOut / (reserveIn + amountIn))
+//
+// Each fee is ceil-rounded independently from grossOut.
+//
+// feeBps: [lpBps, protocolBps, creatorBps]
+export function ammGetSellOutput(
+	amountIn: bigint,
+	reserveIn: bigint,
+	reserveOut: bigint,
+	feeBps: readonly bigint[]
+): bigint {
+	if (amountIn <= 0n || reserveIn <= 0n || reserveOut <= 0n) return 0n;
+
+	const grossOut = (amountIn * reserveOut) / (reserveIn + amountIn);
+
+	let totalFee = 0n;
+	for (const bps of feeBps) {
+		totalFee += ceilDiv(grossOut * bps, MAX_BIPS);
+	}
+
+	return grossOut - totalFee;
 }
 
 // Price of 1 whole base token in quote token units, PRECISION-scaled
-// Adjusts for decimal difference between base and quote
-export function ammGetPrice(baseReserve: bigint, quoteReserve: bigint, baseDecimals: number, quoteDecimals: number): bigint {
+export function ammGetPrice(
+	baseReserve: bigint,
+	quoteReserve: bigint,
+	baseDecimals: number,
+	quoteDecimals: number
+): bigint {
 	if (baseReserve <= 0n) return 0n;
 	const decimalAdjust = BigInt(10 ** Math.abs(baseDecimals - quoteDecimals));
 	if (baseDecimals > quoteDecimals) {
