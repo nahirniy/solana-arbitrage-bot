@@ -1,7 +1,6 @@
 import { DexType } from "../types";
 import type { AmmPoolState, DlmmPoolState, AnyPoolState, ArbRoute, ArbOpportunity, DexPoolConfig } from "../types";
 import { FIXED_TRADE_SIZE_LAMPORTS } from "../config";
-import { PUMPFUN_LP_FEE_BIPS, PUMPFUN_PROTOCOL_FEE_BIPS, PUMPFUN_CREATOR_FEE_BIPS } from "../config";
 import { ammGetBuyOutput, ammGetSellOutput } from "./amm-math";
 import { dlmmGetAmountOut } from "./dlmm-math";
 
@@ -82,11 +81,7 @@ function simulateBuy(solIn: bigint, dexType: DexType, state: AnyPoolState): bigi
 	switch (dexType) {
 		case DexType.PUMPFUN_AMM: {
 			const s = state as AmmPoolState;
-			return ammGetBuyOutput(solIn, s.quoteReserve, s.baseReserve, [
-				PUMPFUN_LP_FEE_BIPS,
-				PUMPFUN_PROTOCOL_FEE_BIPS,
-				PUMPFUN_CREATOR_FEE_BIPS
-			]);
+			return ammGetBuyOutput(solIn, s.quoteReserve, s.baseReserve, s.feeBps);
 		}
 		case DexType.METEORA_DLMM: {
 			const s = state as DlmmPoolState;
@@ -102,11 +97,7 @@ function simulateSell(tokensIn: bigint, dexType: DexType, state: AnyPoolState): 
 	switch (dexType) {
 		case DexType.PUMPFUN_AMM: {
 			const s = state as AmmPoolState;
-			return ammGetSellOutput(tokensIn, s.baseReserve, s.quoteReserve, [
-				PUMPFUN_LP_FEE_BIPS,
-				PUMPFUN_PROTOCOL_FEE_BIPS,
-				PUMPFUN_CREATOR_FEE_BIPS
-			]);
+			return ammGetSellOutput(tokensIn, s.baseReserve, s.quoteReserve, s.feeBps);
 		}
 		case DexType.METEORA_DLMM: {
 			const s = state as DlmmPoolState;

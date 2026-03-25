@@ -2,7 +2,15 @@ import { Connection, PublicKey } from "@solana/web3.js";
 import { BINS_PER_ARRAY } from "../config";
 import type { DexPoolConfig, ArbPoolsConfig } from "../types";
 import { DexType, TokenSymbol } from "../types";
-import { decodePumpFunPool, decodeTokenAccountBalance, decodeMeteoraPool, decodeMeteoraBinArray } from "../decoders";
+import {
+	decodePumpFunPool,
+	decodePumpFeeConfig,
+	selectFeeTier,
+	decodeTokenAccountBalance,
+	decodeMeteoraPool,
+	decodeMeteoraBinArray
+} from "../decoders";
+import { PUMP_FEE_CONFIG } from "../config/program.config";
 import { retry, log, deriveBinArrayPDA, formatPrice } from "../utils";
 import { AmmStateService } from "./amm-state.service";
 import { DlmmStateService } from "./dlmm-state.service";
@@ -58,12 +66,20 @@ async function initAmm(
 		else decoded.quoteReserve = balance;
 	}
 
+	const feeConfigInfo = await retry(() => connection.getAccountInfo(PUMP_FEE_CONFIG));
+	if (feeConfigInfo) {
+		const tiers = decodePumpFeeConfig(feeConfigInfo.data as Buffer);
+		if (tiers.length > 0) {
+			decoded.feeBps = selectFeeTier(tiers, decoded.quoteReserve);
+		}
+	}
+
 	const service = new AmmStateService();
 	service.init(decoded);
 	poolState.register(pool.poolAddress, service);
 
 	log.success(
-		`[init] AMM pool loaded: ${pool.poolAddress} (base=${decoded.baseReserve}, quote=${decoded.quoteReserve}, price=${formatPrice(decoded.price, baseSymbol, quoteSymbol)})`
+		`[init] AMM pool loaded: ${pool.poolAddress} (base=${decoded.baseReserve}, quote=${decoded.quoteReserve}, fee=[${decoded.feeBps}], price=${formatPrice(decoded.price, baseSymbol, quoteSymbol)})`
 	);
 }
 

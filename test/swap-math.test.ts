@@ -2,13 +2,7 @@ import "dotenv/config";
 import { expect } from "chai";
 import { Keypair, Connection } from "@solana/web3.js";
 import bs58 from "bs58";
-import {
-	loadEnv,
-	buildArbPoolsConfigs,
-	PUMPFUN_LP_FEE_BIPS,
-	PUMPFUN_PROTOCOL_FEE_BIPS,
-	PUMPFUN_CREATOR_FEE_BIPS
-} from "../src/config";
+import { loadEnv, buildArbPoolsConfigs } from "../src/config";
 import { PoolStateService, initializeState } from "../src/state";
 import { ammGetBuyOutput, ammGetSellOutput } from "../src/math/amm-math";
 import { dlmmGetAmountOut } from "../src/math/dlmm-math";
@@ -75,8 +69,7 @@ describe("Swap Math vs On-Chain Estimation", function () {
 
 		for (const buyAmount of BUY_AMOUNTS) {
 			it(`buy ${Number(buyAmount) / 1e9} SOL → LIA matches on-chain`, async function () {
-				const feeBps = [PUMPFUN_LP_FEE_BIPS, PUMPFUN_PROTOCOL_FEE_BIPS, PUMPFUN_CREATOR_FEE_BIPS];
-				const expected = ammGetBuyOutput(buyAmount, ammState.quoteReserve, ammState.baseReserve, feeBps);
+				const expected = ammGetBuyOutput(buyAmount, ammState.quoteReserve, ammState.baseReserve, ammState.feeBps);
 				const ix = buildPumpFunBuy(buyAmount, walletAccounts, ammState);
 				const actual = await simulateSwapAndGetDelta(connection, keypair, ix, walletAccounts.userBaseAta);
 
@@ -93,8 +86,7 @@ describe("Swap Math vs On-Chain Estimation", function () {
 				if (liaBalance === 0n) return this.skip();
 
 				const amount = liaBalance < sellAmount ? liaBalance : sellAmount;
-				const feeBps = [PUMPFUN_LP_FEE_BIPS, PUMPFUN_PROTOCOL_FEE_BIPS, PUMPFUN_CREATOR_FEE_BIPS];
-				const expected = ammGetSellOutput(amount, ammState.baseReserve, ammState.quoteReserve, feeBps);
+				const expected = ammGetSellOutput(amount, ammState.baseReserve, ammState.quoteReserve, ammState.feeBps);
 				const ix = buildPumpFunSell(amount, walletAccounts, ammState);
 				const actual = await simulateSwapAndGetDelta(connection, keypair, ix, walletAccounts.userQuoteAta);
 

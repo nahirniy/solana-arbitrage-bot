@@ -1,5 +1,5 @@
 import { PublicKey } from "@solana/web3.js";
-import { AmmPoolState } from "../types";
+import type { AmmPoolState, PumpFeeTier } from "../types";
 import { TokenSymbol } from "../types";
 
 // PumpFun AMM Pool account layout (Anchor program: pSwapbiyqMh8U93RzGXzXCjJKHsXq5PsfKVR1AMTBEF)
@@ -39,6 +39,58 @@ export function decodePumpFunPool(poolAddress: string, data: Buffer): AmmPoolSta
 		quoteSymbol: "" as TokenSymbol,
 		baseReserve: 0n,
 		quoteReserve: 0n,
-		price: 0n
+		price: 0n,
+		feeBps: [2n, 93n, 30n]
 	};
+}
+
+// FeeConfig account layout (program: pfeeUxB6jkeY1Hxd7CsFCAjcbHA9rWtchMGdZ6VojVZ)
+// Offset  Size  Field
+//  0       8    discriminator
+//  8       1    bump
+//  9      32    admin
+// 41      24    flat_fees (3 × u64: lp, protocol, creator)
+// 65       4    fee_tiers length (u32)
+// 69      40*N  fee_tiers (each: u128 threshold + 3 × u64 fees)
+
+const FEE_CONFIG_HEADER = 69;
+const FEE_TIER_SIZE = 40;
+
+export function decodePumpFeeConfig(data: Buffer): PumpFeeTier[] {
+	if (data.length < FEE_CONFIG_HEADER) return [];
+
+	const tierCount = data.readUInt32LE(65);
+	const tiers: PumpFeeTier[] = [];
+
+	for (let i = 0; i < tierCount; i++) {
+		const off = FEE_CONFIG_HEADER + i * FEE_TIER_SIZE;
+		if (off + FEE_TIER_SIZE > data.length) break;
+
+		const thresholdLo = data.readBigUInt64LE(off);
+		const thresholdHi = data.readBigUInt64LE(off + 8);
+		const thresholdLamports = thresholdLo + (thresholdHi << 64n);
+
+		tiers.push({
+			thresholdLamports,
+			lpBps: data.readBigUInt64LE(off + 16),
+			protocolBps: data.readBigUInt64LE(off + 24),
+			creatorBps: data.readBigUInt64LE(off + 32)
+		});
+	}
+
+	return tiers;
+}
+
+// Market cap for AMM pool: quoteReserve * 2 (50/50 constant product)
+export function selectFeeTier(tiers: readonly PumpFeeTier[], quoteReserve: bigint): readonly bigint[] {
+	const marketCap = quoteReserve * 2n;
+	let selected = tiers[0];
+
+	for (const tier of tiers) {
+		if (marketCap >= tier.thresholdLamports) {
+			selected = tier;
+		}
+	}
+
+	return [selected.lpBps, selected.protocolBps, selected.creatorBps];
 }

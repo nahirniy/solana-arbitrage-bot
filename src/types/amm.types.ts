@@ -1,5 +1,12 @@
 import type { TokenSymbol } from "./dex.types";
 
+export interface PumpFeeTier {
+	readonly thresholdLamports: bigint;
+	readonly lpBps: bigint;
+	readonly protocolBps: bigint;
+	readonly creatorBps: bigint;
+}
+
 export interface AmmPoolState {
 	readonly poolAddress: string;
 	readonly baseMint: string;
@@ -11,4 +18,5 @@ export interface AmmPoolState {
 	baseReserve: bigint;
 	quoteReserve: bigint;
 	price: bigint;
+	feeBps: readonly bigint[];
 }
