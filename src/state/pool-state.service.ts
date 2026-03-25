@@ -1,8 +1,10 @@
 import type { AnyPoolState, PoolStateHandler } from "../types";
+import { DlmmStateService } from "./dlmm-state.service";
 
 export class PoolStateService {
 	private readonly poolsByAddress = new Map<string, PoolStateHandler>();
 	private readonly handlersByPubkey = new Map<string, PoolStateHandler>(); // every subscribed pubkey -> him handler
+	private resubscriptionNeeded = false;
 
 	register(poolAddress: string, handler: PoolStateHandler): void {
 		this.poolsByAddress.set(poolAddress, handler);
@@ -21,7 +23,28 @@ export class PoolStateService {
 	handleUpdate(pubkey: string, data: Buffer): boolean {
 		const handler = this.handlersByPubkey.get(pubkey);
 		if (!handler) return false;
-		return handler.handleUpdate(pubkey, data);
+
+		const changed = handler.handleUpdate(pubkey, data);
+
+		if (changed && handler instanceof DlmmStateService && handler.needsResubscription()) {
+			this.resubscriptionNeeded = true;
+		}
+
+		return changed;
+	}
+
+	consumeResubscriptionFlag(): boolean {
+		if (!this.resubscriptionNeeded) return false;
+		this.resubscriptionNeeded = false;
+		return true;
+	}
+
+	getDlmmHandlers(): DlmmStateService[] {
+		const handlers: DlmmStateService[] = [];
+		for (const handler of this.poolsByAddress.values()) {
+			if (handler instanceof DlmmStateService) handlers.push(handler);
+		}
+		return handlers;
 	}
 
 	// Called after DLMM resubscription to update pubkey -> handler mapping

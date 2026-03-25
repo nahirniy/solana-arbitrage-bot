@@ -1,8 +1,10 @@
 import Client, { CommitmentLevel, SubscribeRequest, SubscribeUpdate } from "@triton-one/yellowstone-grpc";
 import { ClientDuplexStream } from "@grpc/grpc-js";
 import bs58 from "bs58";
+import { Connection } from "@solana/web3.js";
 import { RECONNECT_DELAY_MS, STALE_STREAM_TIMEOUT_MS } from "../config";
 import { PoolStateService } from "../state";
+import { decodeMeteoraBinArray } from "../decoders";
 import { ArbDetectorService } from "../arb/arb-detector.service";
 import { log, formatError } from "../utils";
 
@@ -14,6 +16,7 @@ export class GeyserListenerService {
 
 	constructor(
 		private readonly geyserUrl: string,
+		private readonly connection: Connection,
 		private readonly poolState: PoolStateService,
 		private readonly arbDetector: ArbDetectorService
 	) {}
@@ -74,7 +77,12 @@ export class GeyserListenerService {
 				const slot = Number(update.account.slot);
 
 				const changed = this.poolState.handleUpdate(pubkey, data);
-				if (changed) this.arbDetector.scan(slot);
+				if (changed) {
+					this.arbDetector.scan(slot);
+					if (this.poolState.consumeResubscriptionFlag()) {
+						this.handleDlmmResubscription();
+					}
+				}
 			});
 
 			this.stream.on("error", (err: Error) => {
@@ -90,6 +98,55 @@ export class GeyserListenerService {
 			log.error(`[geyser] Connection failed: ${formatError(err)}`);
 			this.scheduleReconnect();
 		}
+	}
+
+	private async handleDlmmResubscription(): Promise<void> {
+		for (const handler of this.poolState.getDlmmHandlers()) {
+			if (!handler.needsResubscription()) continue;
+
+			const pdas = handler.getResubscriptionPDAs();
+			try {
+				const accounts = await this.connection.getMultipleAccountsInfo(pdas);
+				const binArrays: { pubkey: string; data: NonNullable<ReturnType<typeof decodeMeteoraBinArray>> }[] = [];
+				for (let i = 0; i < pdas.length; i++) {
+					if (!accounts[i]) continue;
+					const decoded = decodeMeteoraBinArray(accounts[i]!.data as Buffer);
+					if (decoded) binArrays.push({ pubkey: pdas[i].toBase58(), data: decoded });
+				}
+				handler.applyResubscription(binArrays);
+				this.poolState.refreshSubscriptions(handler);
+				log.info(`[geyser] DLMM bin arrays resubscribed (${binArrays.length} arrays)`);
+			} catch (err) {
+				log.error(`[geyser] DLMM resubscription failed: ${formatError(err)}`);
+			}
+		}
+
+		// Resend full subscription with updated accounts
+		await this.resendSubscription();
+	}
+
+	private async resendSubscription(): Promise<void> {
+		if (!this.stream) return;
+
+		const accounts = this.poolState.getAllSubscriptionAddresses();
+		const request: SubscribeRequest = {
+			accounts: {
+				pools: { account: accounts, owner: [], filters: [] }
+			},
+			slots: { slots: {} },
+			commitment: CommitmentLevel.PROCESSED,
+			transactions: {},
+			transactionsStatus: {},
+			blocks: {},
+			blocksMeta: {},
+			entry: {},
+			accountsDataSlice: []
+		};
+
+		await new Promise<void>((resolve, reject) => {
+			this.stream!.write(request, (err: unknown) => (err ? reject(err) : resolve()));
+		});
+		log.info(`[geyser] Resubscribed to ${accounts.length} accounts`);
 	}
 
 	private scheduleReconnect(): void {

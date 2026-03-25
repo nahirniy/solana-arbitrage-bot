@@ -24,7 +24,7 @@ async function main(): Promise<void> {
 
 	arbDetector.scan(0);
 
-	const geyser = new GeyserListenerService(env.geyserUrl, poolState, arbDetector);
+	const geyser = new GeyserListenerService(env.geyserUrl, env.connection, poolState, arbDetector);
 	await geyser.start();
 
 	log.success("[main] Bot running — scanning for arbitrage opportunities");
