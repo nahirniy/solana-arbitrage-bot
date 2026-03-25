@@ -23,12 +23,12 @@ async function main(): Promise<void> {
 	const executor = await initializeExecution(env, poolState, arbPoolsConfigs);
 
 	const config = arbPoolsConfigs[0];
-	const pumpPool = config.pools.find((p) => p.dexType === DexType.PUMPFUN_AMM);
+	const pumpPool = config.pools.find((p) => p.dexType === DexType.PUMPSWAP);
 	const meteoraPool = config.pools.find((p) => p.dexType === DexType.METEORA_DLMM);
 	if (!pumpPool || !meteoraPool) throw new Error("Pool config incomplete");
 
 	const buyPumpSellMeteora: ArbRoute = {
-		buyDex: DexType.PUMPFUN_AMM,
+		buyDex: DexType.PUMPSWAP,
 		buyPoolAddress: pumpPool.poolAddress,
 		sellDex: DexType.METEORA_DLMM,
 		sellPoolAddress: meteoraPool.poolAddress
@@ -37,12 +37,12 @@ async function main(): Promise<void> {
 	const buyMeteoraSellPump: ArbRoute = {
 		buyDex: DexType.METEORA_DLMM,
 		buyPoolAddress: meteoraPool.poolAddress,
-		sellDex: DexType.PUMPFUN_AMM,
+		sellDex: DexType.PUMPSWAP,
 		sellPoolAddress: pumpPool.poolAddress
 	};
 
-	await simulateRoute(env.connection, executor, buyPumpSellMeteora, "Buy PumpFun → Sell Meteora");
-	await simulateRoute(env.connection, executor, buyMeteoraSellPump, "Buy Meteora → Sell PumpFun");
+	await simulateRoute(env.connection, executor, buyPumpSellMeteora, "Buy PumpSwap → Sell Meteora");
+	await simulateRoute(env.connection, executor, buyMeteoraSellPump, "Buy Meteora → Sell PumpSwap");
 }
 
 async function simulateRoute(

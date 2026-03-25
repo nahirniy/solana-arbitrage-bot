@@ -13,7 +13,7 @@ import { ARB_PROGRAM, LIA_MINT, WSOL_MINT } from "../config/program.config";
 
 const EXECUTE_ARB_DISCRIMINATOR = createHash("sha256").update("global:execute_arb").digest().subarray(0, 8);
 
-const ONCHAIN_DEX_PUMPFUN = 0;
+const ONCHAIN_DEX_PUMPSWAP = 0;
 const ONCHAIN_DEX_METEORA = 1;
 
 export function buildArbTransaction(
@@ -82,8 +82,8 @@ function serializeExecuteArbData(route: ArbRoute, amountIn: bigint): Buffer {
 
 function toOnChainDex(dex: DexType): number {
 	switch (dex) {
-		case DexType.PUMPFUN_AMM:
-			return ONCHAIN_DEX_PUMPFUN;
+		case DexType.PUMPSWAP:
+			return ONCHAIN_DEX_PUMPSWAP;
 		case DexType.METEORA_DLMM:
 			return ONCHAIN_DEX_METEORA;
 	}

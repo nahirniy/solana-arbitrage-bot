@@ -1,7 +1,7 @@
 import { PublicKey, SystemProgram, TransactionInstruction } from "@solana/web3.js";
 import { TOKEN_PROGRAM_ID, TOKEN_2022_PROGRAM_ID, ASSOCIATED_TOKEN_PROGRAM_ID } from "@solana/spl-token";
 import type { AccountMeta } from "@solana/web3.js";
-import type { AmmPoolState, DlmmPoolState, WalletAccounts } from "../../src/types";
+import type { PumpSwapPoolState, DlmmPoolState, WalletAccounts } from "../../src/types";
 import {
 	PUMP_PROGRAM,
 	PUMP_FEE_PROGRAM,
@@ -28,12 +28,12 @@ const PUMP_BUY_DISC = Buffer.from([198, 46, 21, 82, 180, 217, 232, 112]);
 const PUMP_SELL_DISC = Buffer.from([51, 230, 133, 164, 1, 127, 131, 173]);
 const METEORA_SWAP2_DISC = Buffer.from([65, 75, 63, 76, 235, 91, 91, 136]);
 
-// ── PumpFun direct swaps ────────────────────────────────────────────
+// ── PumpSwap direct swaps ────────────────────────────────────────────
 
-export function buildPumpFunBuy(
+export function buildPumpSwapBuy(
 	quoteAmount: bigint,
 	walletAccounts: WalletAccounts,
-	ammState: AmmPoolState
+	pumpSwapState: PumpSwapPoolState
 ): TransactionInstruction {
 	// 8 disc + 8 amount + 8 min_out + 1 track_volume = 25 bytes
 	const data = Buffer.alloc(25);
@@ -44,15 +44,15 @@ export function buildPumpFunBuy(
 
 	const w = walletAccounts;
 	const keys: AccountMeta[] = [
-		{ pubkey: new PublicKey(ammState.poolAddress), isSigner: false, isWritable: true },
+		{ pubkey: new PublicKey(pumpSwapState.poolAddress), isSigner: false, isWritable: true },
 		{ pubkey: w.wallet, isSigner: true, isWritable: true },
 		{ pubkey: PUMP_GLOBAL_CONFIG, isSigner: false, isWritable: false },
 		{ pubkey: LIA_MINT, isSigner: false, isWritable: false },
 		{ pubkey: WSOL_MINT, isSigner: false, isWritable: false },
 		{ pubkey: w.userBaseAta, isSigner: false, isWritable: true },
 		{ pubkey: w.userQuoteAta, isSigner: false, isWritable: true },
-		{ pubkey: new PublicKey(ammState.baseVault), isSigner: false, isWritable: true },
-		{ pubkey: new PublicKey(ammState.quoteVault), isSigner: false, isWritable: true },
+		{ pubkey: new PublicKey(pumpSwapState.baseVault), isSigner: false, isWritable: true },
+		{ pubkey: new PublicKey(pumpSwapState.quoteVault), isSigner: false, isWritable: true },
 		{ pubkey: PUMP_BUY_FEE_RECIPIENT, isSigner: false, isWritable: false },
 		{ pubkey: PUMP_BUY_FEE_RECIPIENT_ATA, isSigner: false, isWritable: true },
 		{ pubkey: TOKEN_2022_PROGRAM_ID, isSigner: false, isWritable: false },
@@ -74,10 +74,10 @@ export function buildPumpFunBuy(
 	return new TransactionInstruction({ programId: PUMP_PROGRAM, keys, data });
 }
 
-export function buildPumpFunSell(
+export function buildPumpSwapSell(
 	baseAmount: bigint,
 	walletAccounts: WalletAccounts,
-	ammState: AmmPoolState
+	pumpSwapState: PumpSwapPoolState
 ): TransactionInstruction {
 	// 8 disc + 8 amount + 8 min_out = 24 bytes (no track_volume)
 	const data = Buffer.alloc(24);
@@ -87,15 +87,15 @@ export function buildPumpFunSell(
 
 	const w = walletAccounts;
 	const keys: AccountMeta[] = [
-		{ pubkey: new PublicKey(ammState.poolAddress), isSigner: false, isWritable: true },
+		{ pubkey: new PublicKey(pumpSwapState.poolAddress), isSigner: false, isWritable: true },
 		{ pubkey: w.wallet, isSigner: true, isWritable: true },
 		{ pubkey: PUMP_GLOBAL_CONFIG, isSigner: false, isWritable: true },
 		{ pubkey: LIA_MINT, isSigner: false, isWritable: false },
 		{ pubkey: WSOL_MINT, isSigner: false, isWritable: false },
 		{ pubkey: w.userBaseAta, isSigner: false, isWritable: true },
 		{ pubkey: w.userQuoteAta, isSigner: false, isWritable: true },
-		{ pubkey: new PublicKey(ammState.baseVault), isSigner: false, isWritable: true },
-		{ pubkey: new PublicKey(ammState.quoteVault), isSigner: false, isWritable: true },
+		{ pubkey: new PublicKey(pumpSwapState.baseVault), isSigner: false, isWritable: true },
+		{ pubkey: new PublicKey(pumpSwapState.quoteVault), isSigner: false, isWritable: true },
 		{ pubkey: PUMP_SELL_FEE_RECIPIENT, isSigner: false, isWritable: false },
 		{ pubkey: PUMP_SELL_FEE_RECIPIENT_ATA, isSigner: false, isWritable: true },
 		{ pubkey: TOKEN_2022_PROGRAM_ID, isSigner: false, isWritable: false },

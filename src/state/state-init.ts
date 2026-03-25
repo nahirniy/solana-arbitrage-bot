@@ -3,7 +3,7 @@ import { BINS_PER_ARRAY } from "../config";
 import type { DexPoolConfig, ArbPoolsConfig, PumpFeeTier } from "../types";
 import { DexType, TokenSymbol } from "../types";
 import {
-	decodePumpFunPool,
+	decodePumpSwapPool,
 	decodePumpFeeConfig,
 	selectFeeTier,
 	decodeTokenAccountBalance,
@@ -12,7 +12,7 @@ import {
 } from "../decoders";
 import { PUMP_FEE_CONFIG } from "../config/program.config";
 import { retry, log, deriveBinArrayPDA, formatPrice } from "../utils";
-import { AmmStateService } from "./amm-state.service";
+import { PumpSwapStateService } from "./pumpswap-state.service";
 import { DlmmStateService } from "./dlmm-state.service";
 import { PoolStateService } from "./pool-state.service";
 
@@ -24,8 +24,8 @@ export async function initializeState(
 	for (const config of arbPoolsConfigs) {
 		for (const pool of config.pools) {
 			switch (pool.dexType) {
-				case DexType.PUMPFUN_AMM:
-					await initAmm(connection, pool, poolState, config.baseToken, config.quoteToken);
+				case DexType.PUMPSWAP:
+					await initPumpSwap(connection, pool, poolState, config.baseToken, config.quoteToken);
 					break;
 				case DexType.METEORA_DLMM:
 					await initDlmm(connection, pool, poolState, config.baseToken, config.quoteToken);
@@ -37,7 +37,7 @@ export async function initializeState(
 	}
 }
 
-async function initAmm(
+async function initPumpSwap(
 	connection: Connection,
 	pool: DexPoolConfig,
 	poolState: PoolStateService,
@@ -45,10 +45,10 @@ async function initAmm(
 	quoteSymbol: TokenSymbol
 ): Promise<void> {
 	const accountInfo = await retry(() => connection.getAccountInfo(new PublicKey(pool.poolAddress)));
-	if (!accountInfo) throw new Error(`AMM pool account not found: ${pool.poolAddress}`);
+	if (!accountInfo) throw new Error(`PumpSwap pool account not found: ${pool.poolAddress}`);
 
-	const decoded = decodePumpFunPool(pool.poolAddress, accountInfo.data as Buffer);
-	if (!decoded) throw new Error(`Failed to decode AMM pool: ${pool.poolAddress}`);
+	const decoded = decodePumpSwapPool(pool.poolAddress, accountInfo.data as Buffer);
+	if (!decoded) throw new Error(`Failed to decode PumpSwap pool: ${pool.poolAddress}`);
 	decoded.baseSymbol = baseSymbol;
 	decoded.quoteSymbol = quoteSymbol;
 
@@ -75,12 +75,12 @@ async function initAmm(
 		}
 	}
 
-	const service = new AmmStateService();
+	const service = new PumpSwapStateService();
 	service.init(decoded, feeTiers, PUMP_FEE_CONFIG.toBase58());
 	poolState.register(pool.poolAddress, service);
 
 	log.success(
-		`[init] AMM pool loaded: ${pool.poolAddress} (base=${decoded.baseReserve}, quote=${decoded.quoteReserve}, fee=[${decoded.feeBps}], price=${formatPrice(decoded.price, baseSymbol, quoteSymbol)})`
+		`[init] PumpSwap pool loaded: ${pool.poolAddress} (base=${decoded.baseReserve}, quote=${decoded.quoteReserve}, fee=[${decoded.feeBps}], price=${formatPrice(decoded.price, baseSymbol, quoteSymbol)})`
 	);
 }
 

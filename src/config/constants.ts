@@ -23,7 +23,7 @@ export const TOKEN_DECIMALS: Record<TokenSymbol, number> = {
 
 // ── Program IDs ──────────────────────────────────────────────────────
 
-export const PUMPFUN_AMM_PROGRAM = "pSwapbiyqMh8U93RzGXzXCjJKHsXq5PsfKVR1AMTBEF";
+export const PUMPSWAP_PROGRAM = "pSwapbiyqMh8U93RzGXzXCjJKHsXq5PsfKVR1AMTBEF";
 export const METEORA_DLMM_PROGRAM = "LBUZKhRxPF3XUpBCjp4YzTKgLccjZhTSDM9YuVaPwxo";
 export const WSOL_MINT = "So11111111111111111111111111111111111111112";
 

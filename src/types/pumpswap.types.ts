@@ -7,7 +7,7 @@ export interface PumpFeeTier {
 	readonly creatorBps: bigint;
 }
 
-export interface AmmPoolState {
+export interface PumpSwapPoolState {
 	readonly poolAddress: string;
 	readonly baseMint: string;
 	readonly quoteMint: string;

@@ -1,6 +1,6 @@
 import { PublicKey } from "@solana/web3.js";
 import type { AccountMeta } from "@solana/web3.js";
-import type { AmmPoolState, DexAccountsContext } from "../../types";
+import type { PumpSwapPoolState, DexAccountsContext } from "../../types";
 import {
 	PUMP_PROGRAM,
 	PUMP_FEE_PROGRAM,
@@ -17,8 +17,8 @@ import {
 	PUMP_SELL_FEE_RECIPIENT_ATA
 } from "../program.config";
 
-export function getPumpFunAccounts({ poolState, walletAccounts, isBuySide }: DexAccountsContext): AccountMeta[] {
-	const state = poolState as AmmPoolState;
+export function getPumpSwapAccounts({ poolState, walletAccounts, isBuySide }: DexAccountsContext): AccountMeta[] {
+	const state = poolState as PumpSwapPoolState;
 
 	return [
 		{ pubkey: new PublicKey(state.poolAddress), isSigner: false, isWritable: true },

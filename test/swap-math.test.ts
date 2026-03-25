@@ -4,11 +4,11 @@ import { Keypair, Connection } from "@solana/web3.js";
 import bs58 from "bs58";
 import { loadEnv, buildArbPoolsConfigs } from "../src/config";
 import { PoolStateService, initializeState } from "../src/state";
-import { ammGetBuyOutput, ammGetSellOutput } from "../src/math/amm-math";
+import { pumpSwapGetBuyOutput, pumpSwapGetSellOutput } from "../src/math/pumpswap-math";
 import { dlmmGetAmountOut } from "../src/math/dlmm-math";
 import { DexType } from "../src/types";
-import type { AmmPoolState, DlmmPoolState, WalletAccounts } from "../src/types";
-import { buildPumpFunBuy, buildPumpFunSell, buildMeteoraSwap, simulateSwapAndGetDelta, getTokenBalance } from "./utils";
+import type { PumpSwapPoolState, DlmmPoolState, WalletAccounts } from "../src/types";
+import { buildPumpSwapBuy, buildPumpSwapSell, buildMeteoraSwap, simulateSwapAndGetDelta, getTokenBalance } from "./utils";
 import { getAssociatedTokenAddressSync, TOKEN_PROGRAM_ID, TOKEN_2022_PROGRAM_ID } from "@solana/spl-token";
 import { PublicKey } from "@solana/web3.js";
 import { ARB_PROGRAM, PUMP_PROGRAM, LIA_MINT, WSOL_MINT } from "../src/config/program.config";
@@ -23,7 +23,7 @@ describe("Swap Math vs On-Chain Estimation", function () {
 	let connection: Connection;
 	let keypair: Keypair;
 	let walletAccounts: WalletAccounts;
-	let ammState: AmmPoolState;
+	let pumpSwapState: PumpSwapPoolState;
 	let dlmmState: DlmmPoolState;
 	let pumpPoolAddress: string;
 	let dlmmPoolAddress: string;
@@ -50,27 +50,27 @@ describe("Swap Math vs On-Chain Estimation", function () {
 		await initializeState(connection, arbPoolsConfigs, poolState);
 
 		const config = arbPoolsConfigs[0];
-		const pumpPool = config.pools.find((p) => p.dexType === DexType.PUMPFUN_AMM)!;
+		const pumpPool = config.pools.find((p) => p.dexType === DexType.PUMPSWAP)!;
 		const meteoraPool = config.pools.find((p) => p.dexType === DexType.METEORA_DLMM)!;
 
 		pumpPoolAddress = pumpPool.poolAddress;
-		ammState = poolState.getPoolState(pumpPoolAddress) as AmmPoolState;
+		pumpSwapState = poolState.getPoolState(pumpPoolAddress) as PumpSwapPoolState;
 		dlmmPoolAddress = meteoraPool.poolAddress;
 		dlmmState = poolState.getPoolState(dlmmPoolAddress) as DlmmPoolState;
 	});
 
-	describe("PumpFun AMM", function () {
+	describe("PumpSwap AMM", function () {
 		beforeEach(async function () {
 			const freshConfigs = buildArbPoolsConfigs();
 			const freshState = new PoolStateService();
 			await initializeState(connection, freshConfigs, freshState);
-			ammState = freshState.getPoolState(pumpPoolAddress) as AmmPoolState;
+			pumpSwapState = freshState.getPoolState(pumpPoolAddress) as PumpSwapPoolState;
 		});
 
 		for (const buyAmount of BUY_AMOUNTS) {
 			it(`buy ${Number(buyAmount) / 1e9} SOL → LIA matches on-chain`, async function () {
-				const expected = ammGetBuyOutput(buyAmount, ammState.quoteReserve, ammState.baseReserve, ammState.feeBps);
-				const ix = buildPumpFunBuy(buyAmount, walletAccounts, ammState);
+				const expected = pumpSwapGetBuyOutput(buyAmount, pumpSwapState.quoteReserve, pumpSwapState.baseReserve, pumpSwapState.feeBps);
+				const ix = buildPumpSwapBuy(buyAmount, walletAccounts, pumpSwapState);
 				const actual = await simulateSwapAndGetDelta(connection, keypair, ix, walletAccounts.userBaseAta);
 
 				console.log(`    Math:    ${expected} LIA raw`);
@@ -86,8 +86,8 @@ describe("Swap Math vs On-Chain Estimation", function () {
 				if (liaBalance === 0n) return this.skip();
 
 				const amount = liaBalance < sellAmount ? liaBalance : sellAmount;
-				const expected = ammGetSellOutput(amount, ammState.baseReserve, ammState.quoteReserve, ammState.feeBps);
-				const ix = buildPumpFunSell(amount, walletAccounts, ammState);
+				const expected = pumpSwapGetSellOutput(amount, pumpSwapState.baseReserve, pumpSwapState.quoteReserve, pumpSwapState.feeBps);
+				const ix = buildPumpSwapSell(amount, walletAccounts, pumpSwapState);
 				const actual = await simulateSwapAndGetDelta(connection, keypair, ix, walletAccounts.userQuoteAta);
 
 				console.log(`    Math:    ${expected} lamports`);

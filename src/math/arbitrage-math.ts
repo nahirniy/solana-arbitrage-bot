@@ -1,7 +1,7 @@
 import { DexType } from "../types";
-import type { AmmPoolState, DlmmPoolState, AnyPoolState, ArbRoute, ArbOpportunity, DexPoolConfig } from "../types";
+import type { PumpSwapPoolState, DlmmPoolState, AnyPoolState, ArbRoute, ArbOpportunity, DexPoolConfig } from "../types";
 import { FIXED_TRADE_SIZE_LAMPORTS } from "../config";
-import { ammGetBuyOutput, ammGetSellOutput } from "./amm-math";
+import { pumpSwapGetBuyOutput, pumpSwapGetSellOutput } from "./pumpswap-math";
 import { dlmmGetAmountOut } from "./dlmm-math";
 
 export interface PoolWithState {
@@ -79,9 +79,9 @@ function assertNever(value: never): never {
 
 function simulateBuy(solIn: bigint, dexType: DexType, state: AnyPoolState): bigint {
 	switch (dexType) {
-		case DexType.PUMPFUN_AMM: {
-			const s = state as AmmPoolState;
-			return ammGetBuyOutput(solIn, s.quoteReserve, s.baseReserve, s.feeBps);
+		case DexType.PUMPSWAP: {
+			const s = state as PumpSwapPoolState;
+			return pumpSwapGetBuyOutput(solIn, s.quoteReserve, s.baseReserve, s.feeBps);
 		}
 		case DexType.METEORA_DLMM: {
 			const s = state as DlmmPoolState;
@@ -95,9 +95,9 @@ function simulateBuy(solIn: bigint, dexType: DexType, state: AnyPoolState): bigi
 
 function simulateSell(tokensIn: bigint, dexType: DexType, state: AnyPoolState): bigint {
 	switch (dexType) {
-		case DexType.PUMPFUN_AMM: {
-			const s = state as AmmPoolState;
-			return ammGetSellOutput(tokensIn, s.baseReserve, s.quoteReserve, s.feeBps);
+		case DexType.PUMPSWAP: {
+			const s = state as PumpSwapPoolState;
+			return pumpSwapGetSellOutput(tokensIn, s.baseReserve, s.quoteReserve, s.feeBps);
 		}
 		case DexType.METEORA_DLMM: {
 			const s = state as DlmmPoolState;

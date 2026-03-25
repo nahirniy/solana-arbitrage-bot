@@ -3,7 +3,7 @@ import type { PoolDetails, ArbPoolsConfig, DexPoolConfig } from "../types";
 
 const POOL_DETAILS: readonly PoolDetails[] = [
 	{
-		dexType: DexType.PUMPFUN_AMM,
+		dexType: DexType.PUMPSWAP,
 		baseToken: TokenSymbol.LIA,
 		quoteToken: TokenSymbol.WSOL,
 		poolAddress: "8BhCzFjnHmFyZEdh6JNgoQNRHCS2R8KHKYpGviocNYSa"
@@ -17,7 +17,7 @@ const POOL_DETAILS: readonly PoolDetails[] = [
 ];
 
 // Groups POOL_DETAILS by token combination
-// [PumpFun LIA/SOL, Meteora LIA/SOL] → [{LIA/SOL, pools: [PumpFun, Meteora]}]
+// [PumpSwap LIA/SOL, Meteora LIA/SOL] → [{LIA/SOL, pools: [PumpSwap, Meteora]}]
 export function buildArbPoolsConfigs(): ArbPoolsConfig[] {
 	// key = "LIA:SOL", value = all pools for that token
 	const arbPoolsMap = new Map<string, { baseToken: TokenSymbol; quoteToken: TokenSymbol; pools: DexPoolConfig[] }>();

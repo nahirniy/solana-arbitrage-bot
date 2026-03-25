@@ -9,7 +9,7 @@ export const ARB_PROGRAM = new PublicKey("An3HM7PCKigYDszLj8iWYK7mWRnnnhECfM2tRZ
 export const LIA_MINT = new PublicKey("79dGFnR8XUusyDiK3n8yZ6FXhJjWLFgzdsi2SkUpump");
 export const WSOL_MINT = new PublicKey("So11111111111111111111111111111111111111112");
 
-// ── PumpFun AMM ─────────────────────────────────────────────────────
+// ── PumpSwap AMM ─────────────────────────────────────────────────────
 
 export const PUMP_PROGRAM = new PublicKey("pAMMBay6oceH9fJKBRHGP5D4bD4sWpmSwMn52FMfXEA");
 export const PUMP_FEE_PROGRAM = new PublicKey("pfeeUxB6jkeY1Hxd7CsFCAjcbHA9rWtchMGdZ6VojVZ");
@@ -21,7 +21,7 @@ export const PUMP_FEE_CONFIG = new PublicKey("5PHirr8joyTMp9JMm6nW7hNDVyEYdkzDqa
 export const PUMP_STATIC_ACCOUNT = new PublicKey("5c829Q6nZGDrD7Pfv2xFh5pMigfaoUgTGbbt1Z2t1FjY");
 export const PUMP_GLOBAL_VOLUME_ACCUMULATOR = new PublicKey("C2aFPdENg4A2HQsmrd5rTw5TaYBX5Ku887cWjbFKtZpw");
 
-// PumpFun buy vs sell use different fee recipients
+// PumpSwap buy vs sell use different fee recipients
 export const PUMP_BUY_FEE_RECIPIENT = new PublicKey("JCRGumoE9Qi5BBgULTgdgTLjSgkCMSbF62ZZfGs84JeU");
 export const PUMP_BUY_FEE_RECIPIENT_ATA = new PublicKey("DWpvfqzGWuVy9jVSKSShdM2733nrEsnnhsUStYbkj6Nn");
 export const PUMP_SELL_FEE_RECIPIENT = new PublicKey("62qc2CNXwrYqQScmEdiZFFAnJR262PxWEuNQtxfafNgV");

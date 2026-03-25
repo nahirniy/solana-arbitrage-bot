@@ -1,8 +1,8 @@
 import { PublicKey } from "@solana/web3.js";
-import type { AmmPoolState, PumpFeeTier } from "../types";
+import type { PumpSwapPoolState, PumpFeeTier } from "../types";
 import { TokenSymbol } from "../types";
 
-// PumpFun AMM Pool account layout (Anchor program: pSwapbiyqMh8U93RzGXzXCjJKHsXq5PsfKVR1AMTBEF)
+// PumpSwap AMM Pool account layout (Anchor program: pSwapbiyqMh8U93RzGXzXCjJKHsXq5PsfKVR1AMTBEF)
 // Offset  Size  Field
 //  0       8    discriminator
 //  8       1    pool_bump
@@ -26,7 +26,7 @@ function readPubkey(data: Buffer, offset: number): string {
 	return new PublicKey(data.subarray(offset, offset + 32)).toBase58();
 }
 
-export function decodePumpFunPool(poolAddress: string, data: Buffer): AmmPoolState | null {
+export function decodePumpSwapPool(poolAddress: string, data: Buffer): PumpSwapPoolState | null {
 	if (data.length < MIN_ACCOUNT_SIZE) return null;
 
 	return {

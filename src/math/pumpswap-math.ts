@@ -4,9 +4,9 @@ function ceilDiv(a: bigint, b: bigint): bigint {
 	return (a + b - 1n) / b;
 }
 
-// ── PumpFun AMM buy (SOL → Token) ──────────────────────────────────
+// ── PumpSwap AMM buy (SOL → Token) ──────────────────────────────────
 //
-// PumpFun deducts fees from input before the swap. Unlike Uniswap where fee
+// PumpSwap deducts fees from input before the swap. Unlike Uniswap where fee
 // is embedded in the formula, here each fee component (LP, protocol, creator)
 // is ceil-rounded independently, then subtracted from input.
 //
@@ -15,7 +15,7 @@ function ceilDiv(a: bigint, b: bigint): bigint {
 // the reduced amount.
 //
 // feeBps: [lpBps, protocolBps, creatorBps]
-export function ammGetBuyOutput(
+export function pumpSwapGetBuyOutput(
 	amountIn: bigint,
 	reserveIn: bigint,
 	reserveOut: bigint,
@@ -41,7 +41,7 @@ export function ammGetBuyOutput(
 	return ((effectiveIn - 1n) * reserveOut) / (reserveIn + effectiveIn - 1n);
 }
 
-// ── PumpFun AMM sell (Token → SOL) ──────────────────────────────────
+// ── PumpSwap AMM sell (Token → SOL) ──────────────────────────────────
 //
 // Sell is straightforward: constant product first, fees after.
 //   grossOut = floor(amountIn * reserveOut / (reserveIn + amountIn))
@@ -49,7 +49,7 @@ export function ammGetBuyOutput(
 // Each fee is ceil-rounded independently from grossOut.
 //
 // feeBps: [lpBps, protocolBps, creatorBps]
-export function ammGetSellOutput(
+export function pumpSwapGetSellOutput(
 	amountIn: bigint,
 	reserveIn: bigint,
 	reserveOut: bigint,
@@ -68,7 +68,7 @@ export function ammGetSellOutput(
 }
 
 // Price of 1 whole base token in quote token units, PRECISION-scaled
-export function ammGetPrice(
+export function pumpSwapGetPrice(
 	baseReserve: bigint,
 	quoteReserve: bigint,
 	baseDecimals: number,

@@ -1,5 +1,5 @@
 export enum DexType {
-	PUMPFUN_AMM = "PUMPFUN_AMM",
+	PUMPSWAP = "PUMPSWAP",
 	METEORA_DLMM = "METEORA_DLMM"
 }
 

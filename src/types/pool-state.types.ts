@@ -1,7 +1,7 @@
-import type { AmmPoolState } from "./amm.types";
+import type { PumpSwapPoolState } from "./pumpswap.types";
 import type { DlmmPoolState } from "./dlmm.types";
 
-export type AnyPoolState = AmmPoolState | DlmmPoolState;
+export type AnyPoolState = PumpSwapPoolState | DlmmPoolState;
 
 export interface PoolStateHandler {
 	isSubscribed(pubkey: string): boolean;

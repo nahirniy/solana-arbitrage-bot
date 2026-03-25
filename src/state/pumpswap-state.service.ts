@@ -1,18 +1,18 @@
-import type { AmmPoolState, PumpFeeTier, PoolStateHandler } from "../types";
+import type { PumpSwapPoolState, PumpFeeTier, PoolStateHandler } from "../types";
 import { TOKEN_DECIMALS } from "../config";
 import { decodeTokenAccountBalance, decodePumpFeeConfig, selectFeeTier } from "../decoders";
-import { ammGetPrice } from "../math";
+import { pumpSwapGetPrice } from "../math";
 import { log, formatPrice } from "../utils";
 
-export class AmmStateService implements PoolStateHandler {
-	private state: AmmPoolState | null = null;
+export class PumpSwapStateService implements PoolStateHandler {
+	private state: PumpSwapPoolState | null = null;
 	private feeTiers: readonly PumpFeeTier[] = [];
 	private feeConfigPubkey: string | null = null;
 	private reserves = new Map<string, bigint>();
 	private pendingReserves = new Map<string, bigint>();
 	private updateTracker = new Set<string>();
 
-	init(state: AmmPoolState, feeTiers: readonly PumpFeeTier[], feeConfigPubkey: string): void {
+	init(state: PumpSwapPoolState, feeTiers: readonly PumpFeeTier[], feeConfigPubkey: string): void {
 		this.state = state;
 		this.feeTiers = feeTiers;
 		this.feeConfigPubkey = feeConfigPubkey;
@@ -36,7 +36,7 @@ export class AmmStateService implements PoolStateHandler {
 		return this.applyVaultUpdate(pubkey, data);
 	}
 
-	getState(): AmmPoolState | null {
+	getState(): PumpSwapPoolState | null {
 		return this.state;
 	}
 
@@ -71,7 +71,7 @@ export class AmmStateService implements PoolStateHandler {
 		if (this.feeTiers.length > 0) {
 			this.state!.feeBps = selectFeeTier(this.feeTiers, this.state!.quoteReserve);
 		}
-		log.info(`[amm] price=${formatPrice(this.state!.price, this.state!.baseSymbol, this.state!.quoteSymbol)}`);
+		log.info(`[pumpswap] price=${formatPrice(this.state!.price, this.state!.baseSymbol, this.state!.quoteSymbol)}`);
 
 		this.pendingReserves.clear();
 		this.updateTracker.clear();
@@ -85,14 +85,14 @@ export class AmmStateService implements PoolStateHandler {
 		this.feeTiers = tiers;
 		if (this.state) {
 			this.state.feeBps = selectFeeTier(tiers, this.state.quoteReserve);
-			log.info(`[amm] Fee tiers updated (${tiers.length} tiers)`);
+			log.info(`[pumpswap] Fee tiers updated (${tiers.length} tiers)`);
 		}
 		return false; // fee change alone doesn't trigger arb scan
 	}
 
 	private calcPrice(): bigint {
 		if (!this.state) return 0n;
-		return ammGetPrice(
+		return pumpSwapGetPrice(
 			this.state.baseReserve,
 			this.state.quoteReserve,
 			TOKEN_DECIMALS[this.state.baseSymbol],
