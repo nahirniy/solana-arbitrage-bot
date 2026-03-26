@@ -3,8 +3,8 @@
 	"version": "1.0.0",
 	"main": "dist/index.js",
 	"scripts": {
-		"build": "tsc",
-		"start": "npx tsc && node dist/index.js",
+		"build": "tsc && cp -r src/sender/relays/protos dist/sender/relays/protos",
+		"start": "npm run build && node dist/index.js",
 		"test": "mocha -r ts-node/register test/**/*.test.ts",
 		"test:arb": "ts-node test/execute-arb.ts",
 		"test:arb:execute": "ts-node test/execute-arb.ts execute"
