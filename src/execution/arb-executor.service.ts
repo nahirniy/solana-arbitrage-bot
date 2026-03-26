@@ -40,15 +40,8 @@ export class ArbExecutorService {
 			const profitSol = (Number(opportunity.profitLamports) / 1e9).toFixed(6);
 			const tipSol = (tipLamports / 1e9).toFixed(6);
 
-			const poolStates = new Map<string, AnyPoolState>();
-			for (const address of [route.buyPoolAddress, route.sellPoolAddress]) {
-				const state = this.poolState.getPoolState(address);
-				if (!state) {
-					log.error(`[executor] Missing pool state for ${address} — skipping`);
-					return;
-				}
-				poolStates.set(address, state);
-			}
+			const poolStates = this.collectPoolStates(route);
+			if (!poolStates) return;
 
 			const accounts = buildExecuteArbAccounts(route, poolStates, this.walletAccounts);
 			const instructions = buildArbInstructions(
@@ -80,7 +73,7 @@ export class ArbExecutorService {
 			}
 		} catch (err) {
 			log.error(`[executor] ${formatError(err)}`);
-			await notifyArbFailed(opportunity, formatError(err));
+			notifyArbFailed(opportunity, formatError(err)).catch((e) => log.error(`[telegram] ${formatError(e)}`));
 		} finally {
 			await this.refreshNonce();
 			this.isPending = false;
@@ -120,6 +113,19 @@ export class ArbExecutorService {
 			accounts: accountAddresses ? { encoding: "base64" as const, addresses: accountAddresses } : undefined
 		});
 		return result.value;
+	}
+
+	private collectPoolStates(route: ArbRoute): Map<string, AnyPoolState> | null {
+		const states = new Map<string, AnyPoolState>();
+		for (const address of [route.buyPoolAddress, route.sellPoolAddress]) {
+			const state = this.poolState.getPoolState(address);
+			if (!state) {
+				log.error(`[executor] Missing pool state for ${address} — skipping`);
+				return null;
+			}
+			states.set(address, state);
+		}
+		return states;
 	}
 
 	private async refreshNonce(): Promise<void> {
