@@ -8,8 +8,10 @@ export const FEE_PRECISION = 1_000_000_000n;
 // Number of bins per Meteora bin array account
 export const BINS_PER_ARRAY = 70;
 
-// Fixed input for current phase: 0.01 SOL = 10 000 000 lamports
-export const FIXED_TRADE_SIZE_LAMPORTS = 1_00_000n;
+// Amount optimizer bounds (golden section search)
+export const MIN_TRADE_LAMPORTS = 100_000n; // 0.0001 SOL
+export const MAX_TRADE_LAMPORTS = 100_000_000n; // 0.1 SOL
+export const DELTA_TRADE_LAMPORTS = 10_000n; // precision threshold
 
 // SPL token account data length (bytes)
 export const TOKEN_ACCOUNT_SIZE = 165;

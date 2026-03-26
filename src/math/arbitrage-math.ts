@@ -1,8 +1,12 @@
 import { DexType } from "../types";
 import type { PumpSwapPoolState, MeteoraPoolState, AnyPoolState, ArbRoute, ArbOpportunity, DexPoolConfig } from "../types";
-import { FIXED_TRADE_SIZE_LAMPORTS } from "../config";
+import { MIN_TRADE_LAMPORTS, MAX_TRADE_LAMPORTS, DELTA_TRADE_LAMPORTS } from "../config";
 import { pumpSwapGetBuyOutput, pumpSwapGetSellOutput } from "./pumpswap-math";
 import { meteoraGetAmountOut } from "./meteora-math";
+
+// Golden ratio for optimal amount search
+const GOLDEN_RATIO = 6180n; // 0.618 * 10000
+const GOLDEN_PRECISION = 10000n;
 
 export interface PoolWithState {
 	readonly pool: DexPoolConfig;
@@ -54,21 +58,65 @@ export function simulateArbitrage(
 	sellState: AnyPoolState,
 	slot: number
 ): ArbOpportunity {
-	const input = FIXED_TRADE_SIZE_LAMPORTS;
-	const baseTokenAmount = simulateBuy(input, route.buyDex, buyState);
+	const { optimalAmountIn, profit } = findOptimalAmount(route, buyState, sellState);
+	const baseTokenAmount = simulateBuy(optimalAmountIn, route.buyDex, buyState);
 	const output = simulateSell(baseTokenAmount, route.sellDex, sellState);
 
 	return {
 		route,
-		inputAmountLamports: input,
+		inputAmountLamports: optimalAmountIn,
 		intermediateTokens: baseTokenAmount,
 		outputAmountLamports: output,
-		profitLamports: output - input,
+		profitLamports: profit,
 		buyPrice: buyState.price,
 		sellPrice: sellState.price,
 		slot,
 		timestamp: Date.now()
 	};
+}
+
+// Golden section search: finds the input amount that maximizes profit
+function findOptimalAmount(
+	route: ArbRoute,
+	buyState: AnyPoolState,
+	sellState: AnyPoolState
+): { optimalAmountIn: bigint; profit: bigint } {
+	let left = MIN_TRADE_LAMPORTS;
+	let right = MAX_TRADE_LAMPORTS;
+
+	const range = right - left;
+	let amountIn1 = right - (range * GOLDEN_RATIO) / GOLDEN_PRECISION;
+	let amountIn2 = left + (range * GOLDEN_RATIO) / GOLDEN_PRECISION;
+
+	let profit1 = calcProfit(amountIn1, route, buyState, sellState);
+	let profit2 = calcProfit(amountIn2, route, buyState, sellState);
+
+	while (right - left > DELTA_TRADE_LAMPORTS) {
+		if (profit1 < profit2) {
+			left = amountIn1;
+			amountIn1 = amountIn2;
+			profit1 = profit2;
+			amountIn2 = left + ((right - left) * GOLDEN_RATIO) / GOLDEN_PRECISION;
+			profit2 = calcProfit(amountIn2, route, buyState, sellState);
+		} else {
+			right = amountIn2;
+			amountIn2 = amountIn1;
+			profit2 = profit1;
+			amountIn1 = right - ((right - left) * GOLDEN_RATIO) / GOLDEN_PRECISION;
+			profit1 = calcProfit(amountIn1, route, buyState, sellState);
+		}
+	}
+
+	const optimalAmountIn = profit1 > profit2 ? amountIn1 : amountIn2;
+	const profit = profit1 > profit2 ? profit1 : profit2;
+
+	return { optimalAmountIn, profit: profit > 0n ? profit : profit };
+}
+
+function calcProfit(amountIn: bigint, route: ArbRoute, buyState: AnyPoolState, sellState: AnyPoolState): bigint {
+	const tokens = simulateBuy(amountIn, route.buyDex, buyState);
+	const solOut = simulateSell(tokens, route.sellDex, sellState);
+	return solOut - amountIn;
 }
 
 // ── helpers ──────────────────────────────────────────────────────────

@@ -1,13 +1,13 @@
 import "dotenv/config";
 import { Connection } from "@solana/web3.js";
-import { loadEnv, buildArbPoolsConfigs, FIXED_TRADE_SIZE_LAMPORTS, MIN_TIP_LAMPORTS, TIP_PERCENT } from "../src/config";
+import { loadEnv, buildArbPoolsConfigs, MIN_TRADE_LAMPORTS, MIN_TIP_LAMPORTS } from "../src/config";
 import { PoolStateService, initializeState } from "../src/state";
 import { initializeExecution } from "../src/execution";
 import { decodeTokenAccountBalance } from "../src/decoders";
 import { DexType } from "../src/types";
-import type { ArbRoute } from "../src/types";
+import type { ArbRoute, ArbOpportunity } from "../src/types";
 import type { ArbExecutorService } from "../src/execution";
-import { simulateArbitrage, findBestRoute } from "../src/math";
+import { findBestRoute } from "../src/math";
 import type { PoolWithState } from "../src/math/arbitrage-math";
 import { log, formatError } from "../src/utils";
 
@@ -55,21 +55,28 @@ async function main(): Promise<void> {
 		return;
 	}
 
-	const opportunity = simulateArbitrage(best.route, best.buyState, best.sellState, 0);
-	const profitSol = (Number(opportunity.profitLamports) / 1e9).toFixed(6);
 	const direction =
 		best.route.buyDex === DexType.PUMPSWAP ? "Buy PumpSwap → Sell Meteora" : "Buy Meteora → Sell PumpSwap";
 
-	log.info(`[test] Best route: ${direction} | profit: ${profitSol} SOL`);
+	log.info(`[test] Best route: ${direction}`);
 
 	if (MODE === "simulate") {
 		await simulateRoute(env.connection, executor, buyPumpSellMeteora, "Buy PumpSwap → Sell Meteora");
 		await simulateRoute(env.connection, executor, buyMeteoraSellPump, "Buy Meteora → Sell PumpSwap");
 	} else if (MODE === "execute") {
-		const tipFromProfit = Math.floor(Number(opportunity.profitLamports) * TIP_PERCENT / 100);
-		const tip = Math.max(tipFromProfit, MIN_TIP_LAMPORTS);
-		log.info(`[test] Executing arb: ${direction} | tip: ${(tip / 1e9).toFixed(6)} SOL`);
-		await executor.execute(opportunity, tip);
+		const opportunity: ArbOpportunity = {
+			route: best.route,
+			inputAmountLamports: MIN_TRADE_LAMPORTS,
+			intermediateTokens: 0n,
+			outputAmountLamports: 0n,
+			profitLamports: 0n,
+			buyPrice: best.buyState.price,
+			sellPrice: best.sellState.price,
+			slot: 0,
+			timestamp: Date.now()
+		};
+		log.info(`[test] Executing arb: ${direction} | amount: ${Number(MIN_TRADE_LAMPORTS) / 1e9} SOL | tip: ${MIN_TIP_LAMPORTS / 1e9} SOL`);
+		await executor.execute(opportunity, MIN_TIP_LAMPORTS);
 	}
 }
 
@@ -79,7 +86,7 @@ async function simulateRoute(
 	route: ArbRoute,
 	label: string
 ): Promise<void> {
-	const amount = FIXED_TRADE_SIZE_LAMPORTS;
+	const amount = MIN_TRADE_LAMPORTS;
 	log.info(`\n[test] === ${label} (${Number(amount) / 1e9} SOL) ===`);
 
 	const wsolAta = executor.wallet.userQuoteAta;
