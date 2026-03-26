@@ -1,0 +1,25 @@
+syntax = "proto3";
+
+package feepb;
+
+option go_package = "./pb/feepb";
+
+service Server {
+    rpc GetTransactionFee(TransactionFee) returns(TransactionFeeResponse) {};
+}
+
+message TransactionFee {
+    repeated string accounts = 1;
+    int32 percentile = 2;
+    int32 slotRange = 3;
+}
+
+message TransactionFeeResponse {
+    FeeValue priorityFee = 1;
+    FeeValue tip = 2;
+}
+
+message FeeValue {
+    int32 percentile = 1;
+    double value = 2;
+}
