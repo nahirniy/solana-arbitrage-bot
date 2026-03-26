@@ -23,7 +23,7 @@ If any answer is "we'd need to refactor" — the design is wrong. Fix it now.
 Core principles:
 - Single responsibility — each module does one thing. A decoder decodes. A math module computes. A state manager caches. No god-objects.
 - Open/closed — adding new behavior means adding new modules, not editing existing ones. A new DEX = new decoder + new math file. Zero changes to orchestration.
-- Dependency inversion — high-level modules (arb detection, orchestration) depend on abstractions and interfaces, not on concrete PumpSwap or DLMM implementations.
+- Dependency inversion — high-level modules (arb detection, orchestration) depend on abstractions and interfaces, not on concrete PumpSwap or Meteora implementations.
 - Explicit data flow — it must be obvious where data comes from and where it goes. No hidden globals, no ambient state, no side effects in pure functions.
 - Layers never skip — transport (Geyser) → decoder → state → math → orchestration. Each layer only talks to its neighbors.
 - No circular dependencies — if module A imports B, module B must never import A, directly or transitively.
