@@ -9,12 +9,13 @@ import type { ArbRoute, ArbOpportunity } from "../src/types";
 import type { ArbExecutorService } from "../src/execution";
 import { findBestRoute } from "../src/math";
 import type { PoolWithState } from "../src/math/arbitrage-math";
-import { log, formatError } from "../src/utils";
+import { log, formatError, initTelegram } from "../src/utils";
 
 const MODE = process.argv[2] || "simulate"; // "simulate" | "execute"
 
 async function main(): Promise<void> {
 	const env = loadEnv();
+	initTelegram(env.telegram);
 	const arbPoolsConfigs = buildArbPoolsConfigs();
 
 	log.info(`[test] Mode: ${MODE}`);

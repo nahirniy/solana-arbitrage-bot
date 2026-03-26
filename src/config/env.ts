@@ -15,6 +15,11 @@ export interface RelayKeys {
 	readonly corvusFalconRpcUrl: string | null;
 }
 
+export interface TelegramConfig {
+	readonly botToken: string;
+	readonly chatId: string;
+}
+
 export interface EnvConfig {
 	readonly rpcUrl: string;
 	readonly geyserUrl: string;
@@ -23,6 +28,7 @@ export interface EnvConfig {
 	readonly nonceAddress: string | null;
 	readonly lutAddress: string | null;
 	readonly relayKeys: RelayKeys;
+	readonly telegram: TelegramConfig | null;
 }
 
 let envConfig: EnvConfig | null = null;
@@ -62,7 +68,11 @@ export function loadEnv(): EnvConfig {
 		corvusFalconRpcUrl: process.env["CORVUS_FALCON_RPC_URL"] || null
 	};
 
-	envConfig = { rpcUrl, geyserUrl, connection, privateKey, nonceAddress, lutAddress, relayKeys };
+	const botToken = process.env["TELEGRAM_BOT_TOKEN"] || null;
+	const chatId = process.env["TELEGRAM_CHAT_ID"] || null;
+	const telegram = botToken && chatId ? { botToken, chatId } : null;
+
+	envConfig = { rpcUrl, geyserUrl, connection, privateKey, nonceAddress, lutAddress, relayKeys, telegram };
 	return envConfig;
 }
 

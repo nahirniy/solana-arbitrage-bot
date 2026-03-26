@@ -4,10 +4,13 @@ import { PoolStateService, initializeState } from "./state";
 import { GeyserListenerService } from "./geyser";
 import { ArbDetectorService } from "./arb";
 import { initializeExecution } from "./execution";
-import { log, formatError } from "./utils";
+import { log, formatError, initTelegram } from "./utils";
 
 async function main(): Promise<void> {
 	const env = loadEnv();
+
+	initTelegram(env.telegram);
+
 	const arbPoolsConfigs = buildArbPoolsConfigs();
 
 	log.info(`[main] Starting arb bot — ${arbPoolsConfigs.length} pool group(s)`);

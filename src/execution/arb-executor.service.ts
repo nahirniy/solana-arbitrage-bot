@@ -12,7 +12,7 @@ import { PoolStateService } from "../state";
 import { SenderService } from "../sender";
 import { buildExecuteArbAccounts } from "./account-builder";
 import { buildArbInstructions } from "./transaction-builder";
-import { retry, log, formatError } from "../utils";
+import { retry, log, formatError, notifyArbExecuted, notifyArbFailed } from "../utils";
 
 export class ArbExecutorService {
 	private nonceValue: string;
@@ -73,11 +73,14 @@ export class ArbExecutorService {
 			if (confirmed) {
 				log.success(`[executor] TX confirmed via ${confirmed.relay}: ${confirmed.hash}`);
 				log.info(`[executor] https://solscan.io/tx/${confirmed.hash}`);
+				await notifyArbExecuted(opportunity, confirmed, tipLamports);
 			} else {
 				log.error(`[executor] TX failed to confirm`);
+				await notifyArbFailed(opportunity, "Confirmation timeout");
 			}
 		} catch (err) {
 			log.error(`[executor] ${formatError(err)}`);
+			await notifyArbFailed(opportunity, formatError(err));
 		} finally {
 			await this.refreshNonce();
 			this.isPending = false;
