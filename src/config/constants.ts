@@ -27,6 +27,10 @@ export const PUMPSWAP_PROGRAM = "pSwapbiyqMh8U93RzGXzXCjJKHsXq5PsfKVR1AMTBEF";
 export const METEORA_PROGRAM = "LBUZKhRxPF3XUpBCjp4YzTKgLccjZhTSDM9YuVaPwxo";
 export const WSOL_MINT = "So11111111111111111111111111111111111111112";
 
+// ── PumpSwap ─────────────────────────────────────────────────────────
+
+export const FEE_CONFIG_UPDATE_INTERVAL_MS = 3_600_000; // 1 hour
+
 // ── Geyser ───────────────────────────────────────────────────────────
 
 export const RECONNECT_DELAY_MS = 10_000;

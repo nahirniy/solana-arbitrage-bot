@@ -1,5 +1,5 @@
 import type { PumpSwapPoolState, PumpFeeTier, PoolStateHandler } from "../types";
-import { TOKEN_DECIMALS } from "../config";
+import { TOKEN_DECIMALS, FEE_CONFIG_UPDATE_INTERVAL_MS } from "../config";
 import { decodeTokenAccountBalance, decodePumpFeeConfig, selectFeeTier } from "../decoders";
 import { pumpSwapGetPrice } from "../math";
 import { log, formatPrice } from "../utils";
@@ -8,6 +8,7 @@ export class PumpSwapStateService implements PoolStateHandler {
 	private state: PumpSwapPoolState | null = null;
 	private feeTiers: readonly PumpFeeTier[] = [];
 	private feeConfigPubkey: string | null = null;
+	private lastFeeConfigUpdate = 0;
 	private reserves = new Map<string, bigint>();
 	private pendingReserves = new Map<string, bigint>();
 	private updateTracker = new Set<string>();
@@ -79,15 +80,20 @@ export class PumpSwapStateService implements PoolStateHandler {
 	}
 
 	private applyFeeConfigUpdate(data: Buffer): boolean {
+		const now = Date.now();
+		if (now - this.lastFeeConfigUpdate < FEE_CONFIG_UPDATE_INTERVAL_MS) return false;
+
 		const tiers = decodePumpFeeConfig(data);
 		if (tiers.length === 0) return false;
 
 		this.feeTiers = tiers;
+		this.lastFeeConfigUpdate = now;
 		if (this.state) {
 			this.state.feeBps = selectFeeTier(tiers, this.state.quoteReserve);
 			log.info(`[pumpswap] Fee tiers updated (${tiers.length} tiers)`);
 		}
-		return false; // fee change alone doesn't trigger arb scan
+
+		return true;
 	}
 
 	private calcPrice(): bigint {
