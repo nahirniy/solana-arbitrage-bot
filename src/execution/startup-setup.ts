@@ -19,6 +19,7 @@ import bs58 from "bs58";
 import type { AddressLookupTableAccount } from "@solana/web3.js";
 import type { EnvConfig } from "../config";
 import type { ArbPoolsConfig, WalletAccounts } from "../types";
+import { SenderService } from "../sender";
 import {
 	ARB_PROGRAM,
 	PUMP_PROGRAM,
@@ -57,9 +58,12 @@ export async function initializeExecution(
 	const lut = await loadOrCreateLut(env.connection, keypair, walletAccounts, arbPoolsConfigs, env.lutAddress);
 	const nonce = await loadOrCreateNonce(env.connection, keypair, env.nonceAddress);
 
+	const sender = new SenderService();
+	sender.init(env.relayKeys, env.connection);
+
 	log.success("[startup] Execution initialized");
 
-	return new ArbExecutorService(env.connection, keypair, walletAccounts, poolState, lut, nonce.address, nonce.value);
+	return new ArbExecutorService(env.connection, keypair, walletAccounts, poolState, lut, nonce.address, nonce.value, sender);
 }
 
 // ── Wallet account derivation ───────────────────────────────────────

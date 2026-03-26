@@ -1,12 +1,6 @@
-import {
-	PublicKey,
-	SystemProgram,
-	TransactionMessage,
-	TransactionInstruction,
-	VersionedTransaction
-} from "@solana/web3.js";
+import { PublicKey, SystemProgram, TransactionInstruction } from "@solana/web3.js";
 import { createHash } from "crypto";
-import type { AccountMeta, AddressLookupTableAccount } from "@solana/web3.js";
+import type { AccountMeta } from "@solana/web3.js";
 import type { ArbRoute } from "../types";
 import { DexType } from "../types";
 import { ARB_PROGRAM, LIA_MINT, WSOL_MINT } from "../config/program.config";
@@ -16,15 +10,13 @@ const EXECUTE_ARB_DISCRIMINATOR = createHash("sha256").update("global:execute_ar
 const ONCHAIN_DEX_PUMPSWAP = 0;
 const ONCHAIN_DEX_METEORA = 1;
 
-export function buildArbTransaction(
+export function buildArbInstructions(
 	accounts: AccountMeta[],
 	route: ArbRoute,
 	amountIn: bigint,
 	nonceAddress: PublicKey,
-	nonceValue: string,
-	wallet: PublicKey,
-	lut: AddressLookupTableAccount
-): VersionedTransaction {
+	wallet: PublicKey
+): TransactionInstruction[] {
 	const nonceAdvanceIx = SystemProgram.nonceAdvance({
 		noncePubkey: nonceAddress,
 		authorizedPubkey: wallet
@@ -36,13 +28,7 @@ export function buildArbTransaction(
 		data: serializeExecuteArbData(route, amountIn)
 	});
 
-	const message = new TransactionMessage({
-		payerKey: wallet,
-		recentBlockhash: nonceValue,
-		instructions: [nonceAdvanceIx, executeArbIx]
-	}).compileToV0Message([lut]);
-
-	return new VersionedTransaction(message);
+	return [nonceAdvanceIx, executeArbIx];
 }
 
 // Anchor instruction data: [8-byte discriminator][borsh-serialized args]

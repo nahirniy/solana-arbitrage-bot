@@ -1,20 +1,23 @@
 import "dotenv/config";
 import { Connection } from "@solana/web3.js";
-import { loadEnv, buildArbPoolsConfigs } from "../src/config";
+import { loadEnv, buildArbPoolsConfigs, FIXED_TRADE_SIZE_LAMPORTS, MIN_TIP_LAMPORTS, TIP_PERCENT } from "../src/config";
 import { PoolStateService, initializeState } from "../src/state";
 import { initializeExecution } from "../src/execution";
 import { decodeTokenAccountBalance } from "../src/decoders";
 import { DexType } from "../src/types";
 import type { ArbRoute } from "../src/types";
 import type { ArbExecutorService } from "../src/execution";
+import { simulateArbitrage, findBestRoute } from "../src/math";
+import type { PoolWithState } from "../src/math/arbitrage-math";
 import { log, formatError } from "../src/utils";
 
-const TEST_AMOUNT = 1_000_000n; // 0.001 SOL
+const MODE = process.argv[2] || "simulate"; // "simulate" | "execute"
 
 async function main(): Promise<void> {
 	const env = loadEnv();
 	const arbPoolsConfigs = buildArbPoolsConfigs();
 
+	log.info(`[test] Mode: ${MODE}`);
 	log.info("[test] Loading pool states...");
 	const poolState = new PoolStateService();
 	await initializeState(env.connection, arbPoolsConfigs, poolState);
@@ -41,8 +44,33 @@ async function main(): Promise<void> {
 		sellPoolAddress: pumpPool.poolAddress
 	};
 
-	await simulateRoute(env.connection, executor, buyPumpSellMeteora, "Buy PumpSwap → Sell Meteora");
-	await simulateRoute(env.connection, executor, buyMeteoraSellPump, "Buy Meteora → Sell PumpSwap");
+	// Simulate both directions to find best
+	const pools: PoolWithState[] = config.pools
+		.map((p) => ({ pool: p, state: poolState.getPoolState(p.poolAddress)! }))
+		.filter((p) => p.state);
+
+	const best = findBestRoute(pools);
+	if (!best) {
+		log.error("[test] No valid route found");
+		return;
+	}
+
+	const opportunity = simulateArbitrage(best.route, best.buyState, best.sellState, 0);
+	const profitSol = (Number(opportunity.profitLamports) / 1e9).toFixed(6);
+	const direction =
+		best.route.buyDex === DexType.PUMPSWAP ? "Buy PumpSwap → Sell Meteora" : "Buy Meteora → Sell PumpSwap";
+
+	log.info(`[test] Best route: ${direction} | profit: ${profitSol} SOL`);
+
+	if (MODE === "simulate") {
+		await simulateRoute(env.connection, executor, buyPumpSellMeteora, "Buy PumpSwap → Sell Meteora");
+		await simulateRoute(env.connection, executor, buyMeteoraSellPump, "Buy Meteora → Sell PumpSwap");
+	} else if (MODE === "execute") {
+		const tipFromProfit = Math.floor(Number(opportunity.profitLamports) * TIP_PERCENT / 100);
+		const tip = Math.max(tipFromProfit, MIN_TIP_LAMPORTS);
+		log.info(`[test] Executing arb: ${direction} | tip: ${(tip / 1e9).toFixed(6)} SOL`);
+		await executor.execute(opportunity, tip);
+	}
 }
 
 async function simulateRoute(
@@ -51,14 +79,15 @@ async function simulateRoute(
 	route: ArbRoute,
 	label: string
 ): Promise<void> {
-	log.info(`\n[test] === ${label} (${Number(TEST_AMOUNT) / 1e9} SOL) ===`);
+	const amount = FIXED_TRADE_SIZE_LAMPORTS;
+	log.info(`\n[test] === ${label} (${Number(amount) / 1e9} SOL) ===`);
 
 	const wsolAta = executor.wallet.userQuoteAta;
 
 	const wsolInfo = await connection.getAccountInfo(wsolAta);
 	const wsolBefore = wsolInfo ? decodeTokenAccountBalance(wsolInfo.data as Buffer) ?? 0n : 0n;
 
-	const result = await executor.simulate(route, TEST_AMOUNT, [wsolAta.toBase58()]);
+	const result = await executor.simulate(route, amount, [wsolAta.toBase58()]);
 
 	if (result.err) {
 		log.error(`[test] FAILED: ${JSON.stringify(result.err)}`);
@@ -79,7 +108,7 @@ async function simulateRoute(
 	}
 
 	const delta = wsolAfter - wsolBefore;
-	const profit = delta - TEST_AMOUNT;
+	const profit = delta - amount;
 
 	log.success(`[test] OK — CU: ${result.unitsConsumed}`);
 	console.log(`  WSOL before:  ${formatSol(wsolBefore)}`);

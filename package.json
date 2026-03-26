@@ -6,7 +6,8 @@
 		"build": "tsc",
 		"start": "npx tsc && node dist/index.js",
 		"test": "mocha -r ts-node/register test/**/*.test.ts",
-		"test:arb": "ts-node test/execute-arb.ts"
+		"test:arb": "ts-node test/execute-arb.ts",
+		"test:arb:execute": "ts-node test/execute-arb.ts execute"
 	},
 	"repository": {
 		"type": "git",

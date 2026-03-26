@@ -9,7 +9,7 @@ export const FEE_PRECISION = 1_000_000_000n;
 export const BINS_PER_ARRAY = 70;
 
 // Fixed input for current phase: 0.01 SOL = 10 000 000 lamports
-export const FIXED_TRADE_SIZE_LAMPORTS = 10_000_000n;
+export const FIXED_TRADE_SIZE_LAMPORTS = 1_00_000n;
 
 // SPL token account data length (bytes)
 export const TOKEN_ACCOUNT_SIZE = 165;
@@ -30,6 +30,12 @@ export const WSOL_MINT = "So11111111111111111111111111111111111111112";
 // ── PumpSwap ─────────────────────────────────────────────────────────
 
 export const FEE_CONFIG_UPDATE_INTERVAL_MS = 3_600_000; // 1 hour
+
+// ── Execution ────────────────────────────────────────────────────────
+
+export const TIP_PERCENT = 10; // % of profit sent as validator tip
+export const MIN_TIP_LAMPORTS = 1_000_000; // 0.001 SOL — minimum tip for relays
+export const MIN_PROFIT_LAMPORTS = 0n; // minimum profit to execute arb
 
 // ── Geyser ───────────────────────────────────────────────────────────
 

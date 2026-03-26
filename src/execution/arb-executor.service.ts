@@ -1,9 +1,17 @@
-import { Connection, Keypair, PublicKey, NonceAccount } from "@solana/web3.js";
+import {
+	Connection,
+	Keypair,
+	PublicKey,
+	NonceAccount,
+	TransactionMessage,
+	VersionedTransaction
+} from "@solana/web3.js";
 import type { AddressLookupTableAccount, SimulatedTransactionResponse } from "@solana/web3.js";
 import type { ArbOpportunity, ArbRoute, AnyPoolState, WalletAccounts } from "../types";
-import { PoolStateService, getBlockData } from "../state";
+import { PoolStateService } from "../state";
+import { SenderService } from "../sender";
 import { buildExecuteArbAccounts } from "./account-builder";
-import { buildArbTransaction } from "./transaction-builder";
+import { buildArbInstructions } from "./transaction-builder";
 import { retry, log, formatError } from "../utils";
 
 export class ArbExecutorService {
@@ -17,17 +25,20 @@ export class ArbExecutorService {
 		private readonly poolState: PoolStateService,
 		private readonly lut: AddressLookupTableAccount,
 		private readonly nonceAddress: PublicKey,
-		initialNonceValue: string
+		initialNonceValue: string,
+		private readonly sender: SenderService
 	) {
 		this.nonceValue = initialNonceValue;
 	}
 
-	async execute(opportunity: ArbOpportunity): Promise<void> {
+	async execute(opportunity: ArbOpportunity, tipLamports = 0): Promise<void> {
 		if (this.isPending) return;
 		this.isPending = true;
 
 		try {
 			const { route } = opportunity;
+			const profitSol = (Number(opportunity.profitLamports) / 1e9).toFixed(6);
+			const tipSol = (tipLamports / 1e9).toFixed(6);
 
 			const poolStates = new Map<string, AnyPoolState>();
 			for (const address of [route.buyPoolAddress, route.sellPoolAddress]) {
@@ -40,28 +51,31 @@ export class ArbExecutorService {
 			}
 
 			const accounts = buildExecuteArbAccounts(route, poolStates, this.walletAccounts);
-			const tx = buildArbTransaction(
+			const instructions = buildArbInstructions(
 				accounts,
 				route,
 				opportunity.inputAmountLamports,
 				this.nonceAddress,
-				this.nonceValue,
-				this.walletAccounts.wallet,
-				this.lut
+				this.walletAccounts.wallet
 			);
 
-			tx.sign([this.keypair]);
-
-			const { blockhash, lastValidBlockHeight } = await this.getBlockContext();
-
-			const sig = await this.connection.sendRawTransaction(tx.serialize(), {
-				skipPreflight: false,
-				maxRetries: 3
+			const candidates = await this.sender.send({
+				instructions,
+				wallet: this.keypair,
+				nonce: this.nonceValue,
+				tipLamports,
+				luts: [this.lut]
 			});
-			log.success(`[executor] TX sent: ${sig}`);
 
-			await this.connection.confirmTransaction({ signature: sig, blockhash, lastValidBlockHeight }, "confirmed");
-			log.success(`[executor] TX confirmed: ${sig}`);
+			log.success(`[executor] TX sent via ${candidates.length} relays | profit=${profitSol} tip=${tipSol} SOL`);
+
+			const confirmed = await this.sender.awaitConfirmation(candidates);
+			if (confirmed) {
+				log.success(`[executor] TX confirmed via ${confirmed.relay}: ${confirmed.hash}`);
+				log.info(`[executor] https://solscan.io/tx/${confirmed.hash}`);
+			} else {
+				log.error(`[executor] TX failed to confirm`);
+			}
 		} catch (err) {
 			log.error(`[executor] ${formatError(err)}`);
 		} finally {
@@ -87,32 +101,22 @@ export class ArbExecutorService {
 		}
 
 		const accounts = buildExecuteArbAccounts(route, poolStates, this.walletAccounts);
-		const tx = buildArbTransaction(
-			accounts,
-			route,
-			amountIn,
-			this.nonceAddress,
-			this.nonceValue,
-			this.walletAccounts.wallet,
-			this.lut
-		);
+		const instructions = buildArbInstructions(accounts, route, amountIn, this.nonceAddress, this.walletAccounts.wallet);
 
+		const message = new TransactionMessage({
+			payerKey: this.walletAccounts.wallet,
+			recentBlockhash: this.nonceValue,
+			instructions
+		}).compileToV0Message([this.lut]);
+		const tx = new VersionedTransaction(message);
 		tx.sign([this.keypair]);
 
 		const result = await this.connection.simulateTransaction(tx, {
 			sigVerify: false,
 			replaceRecentBlockhash: true,
-			accounts: accountAddresses
-				? { encoding: "base64" as const, addresses: accountAddresses }
-				: undefined
+			accounts: accountAddresses ? { encoding: "base64" as const, addresses: accountAddresses } : undefined
 		});
 		return result.value;
-	}
-
-	private async getBlockContext(): Promise<{ blockhash: string; lastValidBlockHeight: number }> {
-		const blockData = getBlockData();
-		if (blockData) return blockData;
-		return this.connection.getLatestBlockhash("confirmed");
 	}
 
 	private async refreshNonce(): Promise<void> {

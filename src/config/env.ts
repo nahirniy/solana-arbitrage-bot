@@ -1,5 +1,20 @@
 import { Connection } from "@solana/web3.js";
 
+export interface RelayKeys {
+	readonly heliusRpcUrl: string | null;
+	readonly blockRazorGrpc: string | null;
+	readonly blockRazorGrpcFee: string | null;
+	readonly blockRazorToken: string | null;
+	readonly astralaneApiKey: string | null;
+	readonly astralaneRpcUrl: string | null;
+	readonly stelliumApiKey: string | null;
+	readonly stelliumRpcUrl: string | null;
+	readonly slot0ApiKey: string | null;
+	readonly slot0RpcUrl: string | null;
+	readonly corvusFalconApiKey: string | null;
+	readonly corvusFalconRpcUrl: string | null;
+}
+
 export interface EnvConfig {
 	readonly rpcUrl: string;
 	readonly geyserUrl: string;
@@ -7,6 +22,7 @@ export interface EnvConfig {
 	readonly privateKey: string;
 	readonly nonceAddress: string | null;
 	readonly lutAddress: string | null;
+	readonly relayKeys: RelayKeys;
 }
 
 let envConfig: EnvConfig | null = null;
@@ -31,7 +47,22 @@ export function loadEnv(): EnvConfig {
 	const nonceAddress = process.env["NONCE_ADDRESS"] || null;
 	const lutAddress = process.env["LUT_ADDRESS"] || null;
 
-	envConfig = { rpcUrl, geyserUrl, connection, privateKey, nonceAddress, lutAddress };
+	const relayKeys: RelayKeys = {
+		heliusRpcUrl: process.env["HELIUS_RPC_URL"] || null,
+		blockRazorGrpc: process.env["BLOCKRAZOR_SOLANA_GRPC"] || null,
+		blockRazorGrpcFee: process.env["BLOCKRAZOR_SOLANA_GRPC_FEE"] || null,
+		blockRazorToken: process.env["BLOCKRAZOR_SOLANA_TOKEN"] || null,
+		astralaneApiKey: process.env["ASTRALANE_API_KEY"] || null,
+		astralaneRpcUrl: process.env["ASTRALANE_RPC_URL"] || null,
+		stelliumApiKey: process.env["STELLIUM_API_KEY"] || null,
+		stelliumRpcUrl: process.env["STELLIUM_RPC_URL"] || null,
+		slot0ApiKey: process.env["SLOT0_API_KEY"] || null,
+		slot0RpcUrl: process.env["SLOT0_RPC_URL"] || null,
+		corvusFalconApiKey: process.env["CORVUS_FALCON_API_KEY"] || null,
+		corvusFalconRpcUrl: process.env["CORVUS_FALCON_RPC_URL"] || null
+	};
+
+	envConfig = { rpcUrl, geyserUrl, connection, privateKey, nonceAddress, lutAddress, relayKeys };
 	return envConfig;
 }
 
