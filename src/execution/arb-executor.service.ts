@@ -1,7 +1,7 @@
 import { Connection, Keypair, PublicKey, NonceAccount } from "@solana/web3.js";
 import type { AddressLookupTableAccount, SimulatedTransactionResponse } from "@solana/web3.js";
 import type { ArbOpportunity, ArbRoute, AnyPoolState, WalletAccounts } from "../types";
-import { PoolStateService } from "../state";
+import { PoolStateService, getBlockData } from "../state";
 import { buildExecuteArbAccounts } from "./account-builder";
 import { buildArbTransaction } from "./transaction-builder";
 import { retry, log, formatError } from "../utils";
@@ -52,7 +52,8 @@ export class ArbExecutorService {
 
 			tx.sign([this.keypair]);
 
-			const { blockhash, lastValidBlockHeight } = await this.connection.getLatestBlockhash("confirmed");
+			const { blockhash, lastValidBlockHeight } = await this.getBlockContext();
+
 			const sig = await this.connection.sendRawTransaction(tx.serialize(), {
 				skipPreflight: false,
 				maxRetries: 3
@@ -106,6 +107,12 @@ export class ArbExecutorService {
 				: undefined
 		});
 		return result.value;
+	}
+
+	private async getBlockContext(): Promise<{ blockhash: string; lastValidBlockHeight: number }> {
+		const blockData = getBlockData();
+		if (blockData) return blockData;
+		return this.connection.getLatestBlockhash("confirmed");
 	}
 
 	private async refreshNonce(): Promise<void> {

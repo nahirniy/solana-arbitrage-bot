@@ -3,7 +3,7 @@ import { ClientDuplexStream } from "@grpc/grpc-js";
 import bs58 from "bs58";
 import { Connection } from "@solana/web3.js";
 import { RECONNECT_DELAY_MS, STALE_STREAM_TIMEOUT_MS } from "../config";
-import { PoolStateService } from "../state";
+import { PoolStateService, updateBlockData } from "../state";
 import { decodeMeteoraBinArray } from "../decoders";
 import { ArbDetectorService } from "../arb/arb-detector.service";
 import { log, formatError } from "../utils";
@@ -55,7 +55,7 @@ export class GeyserListenerService {
 				transactions: {},
 				transactionsStatus: {},
 				blocks: {},
-				blocksMeta: {},
+				blocksMeta: { block: {} },
 				entry: {},
 				accountsDataSlice: []
 			};
@@ -69,6 +69,11 @@ export class GeyserListenerService {
 
 			this.stream.on("data", (update: SubscribeUpdate) => {
 				this.resetStaleTimer();
+
+				if (update.blockMeta) {
+					this.applyBlockMeta(update.blockMeta);
+					return;
+				}
 
 				if (!update.account?.account) return;
 
@@ -98,6 +103,14 @@ export class GeyserListenerService {
 			log.error(`[geyser] Connection failed: ${formatError(err)}`);
 			this.scheduleReconnect();
 		}
+	}
+
+	private applyBlockMeta(meta: SubscribeUpdate["blockMeta"]): void {
+		if (!meta?.blockHeight) return;
+		updateBlockData({
+			blockhash: meta.blockhash,
+			lastValidBlockHeight: Number(meta.blockHeight.blockHeight) + 150
+		});
 	}
 
 	private async handleMeteoraResubscription(): Promise<void> {
@@ -138,7 +151,7 @@ export class GeyserListenerService {
 			transactions: {},
 			transactionsStatus: {},
 			blocks: {},
-			blocksMeta: {},
+			blocksMeta: { block: {} },
 			entry: {},
 			accountsDataSlice: []
 		};
